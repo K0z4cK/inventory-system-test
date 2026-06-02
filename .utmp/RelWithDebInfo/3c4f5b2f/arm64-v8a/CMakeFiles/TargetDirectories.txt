@@ -1,0 +1,5 @@
+D:/Unity/SurvivalTest/.utmp/RelWithDebInfo/3c4f5b2f/arm64-v8a/CMakeFiles/edit_cache.dir
+D:/Unity/SurvivalTest/.utmp/RelWithDebInfo/3c4f5b2f/arm64-v8a/CMakeFiles/rebuild_cache.dir
+D:/Unity/SurvivalTest/.utmp/RelWithDebInfo/3c4f5b2f/arm64-v8a/GameActivity/CMakeFiles/game.dir
+D:/Unity/SurvivalTest/.utmp/RelWithDebInfo/3c4f5b2f/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+D:/Unity/SurvivalTest/.utmp/RelWithDebInfo/3c4f5b2f/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir
