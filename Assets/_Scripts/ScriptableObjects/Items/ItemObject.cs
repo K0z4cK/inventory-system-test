@@ -1,12 +1,14 @@
 using UnityEngine;
 
-public enum ItemType {None, Stone, Wood, Berry, Axe, Spear, Pickaxe }
+public enum ItemCategory { None, Resource, Food, Tool, Weapon }
 
 [CreateAssetMenu(fileName = "ItemData", menuName = "ScriptableObjects/ItemScriptableObject")]
 public class ItemObject : ScriptableObject
 {
-    public ItemType Type;   
+    public string ItemId;
+    public ItemCategory Category;
     public string Name;
     public string Description;
     public Sprite Sprite;
+    public GameObject EquippablePrefab;
 }

@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 43ab0532e19dc7f4788a40a545df03d7, type: 3}
   m_Name: WoodData
   m_EditorClassIdentifier: 
-  Type: 2
+  ItemId: wood
+  Category: 1
   Name: Wood
   Description: Can use to craft items
   Sprite: {fileID: 21300000, guid: 105e0179e7af1c844a5e1b07c7a4b8a6, type: 3}
-  GameObjectPrefab: {fileID: 0}
+  EquippablePrefab: {fileID: 0}

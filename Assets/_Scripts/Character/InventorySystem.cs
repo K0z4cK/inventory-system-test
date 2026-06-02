@@ -1,214 +1,151 @@
-using System;
 using UnityEngine;
+using System.Collections.Generic;
+using UnityEngine.Serialization;
 
-public class InventorySystem : MonoBehaviour
+public class InventorySystem : MonoBehaviour, IInventory
 {
-    [SerializeField] private ItemsHolder _itemsHolder;
+    [FormerlySerializedAs("_itemsHolder")]
+    [SerializeField] private ItemsHolder itemsHolder;
 
-    [SerializeField] private int _maxCells;
-    [SerializeField] private int _maxItemsInCell;
+    [FormerlySerializedAs("_maxCells")]
+    [SerializeField] private int maxCells;
+    [FormerlySerializedAs("_maxItemsInCell")]
+    [SerializeField] private int maxItemsInCell;
 
-    private InventoryItem[] _inventoryItems;
-    public InventoryItem[] InventoryItems => _inventoryItems;
+    private InventoryModel _model;
+
+    public event System.Action<int, InventoryItem> OnSlotChanged
+    {
+        add
+        {
+            EnsureModel();
+            _model.OnSlotChanged += value;
+        }
+        remove
+        {
+            EnsureModel();
+            _model.OnSlotChanged -= value;
+        }
+    }
+
+    public event System.Action OnInventoryChanged
+    {
+        add
+        {
+            EnsureModel();
+            _model.OnInventoryChanged += value;
+        }
+        remove
+        {
+            EnsureModel();
+            _model.OnInventoryChanged -= value;
+        }
+    }
+
+    public InventoryItem[] InventoryItems
+    {
+        get
+        {
+            EnsureModel();
+            return _model.InventoryItems;
+        }
+    }
+
+    public int Capacity
+    {
+        get
+        {
+            EnsureModel();
+            return _model.Capacity;
+        }
+    }
 
     private void Awake()
     {
-        _inventoryItems = new InventoryItem[_maxCells];
+        ResolveItemsHolder();
 
-        CraftManager.Instance.SubscribeOnItemCrafted(OnItemCrafted);
-        UIManager.Instance.InventoryPanel.OnSwapCellItems += SwapItems;
-        UIManager.Instance.InventoryPanel.OnCellItemClick += SelectItemInHolder;
+        EnsureModel();
     }
 
     public void AddItems(IPickable pickable, ItemObject itemObject, int count = 1)
     {
-        int index = -1;
-        bool isCountChanged = false;
-
-        if(CheckSameItem(itemObject, ref index))
+        if (TryAddItems(itemObject, count))
         {
-            if (IsCellHaveSpace(index, count))
-            {
-                AddItemsToCell(index, count);
-                pickable.DestroyObject();
-                return;
-            }
-            else
-            {
-                AddItemsToCell(index, _maxItemsInCell - _inventoryItems[index].Count);
-                count = GetCountRest(index, count);
-                isCountChanged = true; 
-            }
-        }
-
-        index = GetFirstEmptyCellIndex();
-        if (index > -1)
-        {
-            SetItemToCell(index, itemObject, count);
-            pickable.DestroyObject();
+            pickable?.DestroyObject();
             return;
         }
 
-        if(isCountChanged)
-        {
-            pickable.DestroyObject();
-        }
-
         Debug.Log("Inventory Full");
+    }
+
+    public bool CanAddItems(ItemObject itemObject, int count = 1)
+    {
+        EnsureModel();
+        return _model.CanAddItems(itemObject, count);
+    }
+
+    public bool CanAddItemsAfterRemoving(ItemObject itemObject, int count, IEnumerable<InventoryItem> itemsToRemove)
+    {
+        EnsureModel();
+        return _model.CanAddItemsAfterRemoving(itemObject, count, itemsToRemove);
     }
 
     public bool TryAddItems(ItemObject itemObject, int count = 1)
     {
-        int index = -1;
-        if (CheckSameItem(itemObject, ref index))
-        {
-            if (IsCellHaveSpace(index, count))
-            {
-                AddItemsToCell(index, count);
-                return true;
-            }
-            else
-            {
-                AddItemsToCell(index, _maxItemsInCell - _inventoryItems[index].Count);
-                count = GetCountRest(index, count);
-            }
-        }
-
-        index = GetFirstEmptyCellIndex();
-        if (index > -1)
-        {
-            SetItemToCell(index, itemObject, count);
-            return true;
-        }
-
-        Debug.Log("Inventory Full");
-        return false;
+        EnsureModel();
+        return _model.TryAddItems(itemObject, count);
     }
 
-    private void SetItemToCell(int index, ItemObject itemObject, int count)
+    public bool HasItems(ItemObject itemObject, int count = 1)
     {
-        _inventoryItems[index].ItemObject = itemObject;
-        AddItemsToCell(index, count);
+        EnsureModel();
+        return _model.HasItems(itemObject, count);
     }
 
-    private void AddItemsToCell(int index, int count)
+    public bool TryRemoveItems(ItemObject itemObject, int count = 1)
     {
-        _inventoryItems[index].Count += count;
-        UIManager.Instance.InventoryPanel.SetItemToCell(index, _inventoryItems[index]);
+        EnsureModel();
+        return _model.TryRemoveItems(itemObject, count);
     }
 
-    private int GetCountRest(int index, int count) => _inventoryItems[index].Count + count - _maxItemsInCell;
-
-    private bool IsCellHaveSpace(int index, int count) => _inventoryItems[index].Count + count <= _maxItemsInCell;
-
-    private bool CheckSameItem(ItemObject itemObject, ref int index)
+    public int CountItems(ItemObject itemObject)
     {
-        for(int i = 0; i < _inventoryItems.Length; i++)
-        {
-            if ( _inventoryItems[i].ItemObject == itemObject && _inventoryItems[i].Count < _maxItemsInCell)
-            {
-                index = i;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private int GetFirstEmptyCellIndex()
-    {
-        for (int i = 0; i < _inventoryItems.Length; i++)
-        {
-            if (_inventoryItems[i].Count == 0)
-                return i;
-        }
-        return -1;
-    }
-
-    public void OnItemCrafted(ItemCraftStruct itemCraft)
-    {
-        if (TryAddItems(itemCraft.ItemResult.ItemObject, itemCraft.ItemResult.Count))
-        {
-            foreach (InventoryItem item in itemCraft.CraftRecipe)
-            {
-                RemoveItems(item.ItemObject, item.Count);
-            }
-
-            Debug.Log("item crafted: " + itemCraft.ItemResult.ItemObject.Name);
-        }
-        else
-            Debug.Log("item craft failed: " + itemCraft.ItemResult.ItemObject.Name);
-    }
-
-    public void RemoveItems(ItemObject item, int count = 1)
-    {
-        for(int i = 0; i < _inventoryItems.Length; i++)
-        {
-            if (_inventoryItems[i].ItemObject == item)
-            {
-                RemoveItems(i, ref count);
-                if(count > 0)
-                {
-                    RemoveItems(item, count);
-                }
-                return;
-            }
-        }
-    }
-
-    private void RemoveItems(int index, ref int count)
-    {
-        if (_inventoryItems[index].Count > 0)
-        {
-            if (_inventoryItems[index].Count - count <= 0)
-            {
-                _inventoryItems[index].Count -= count;
-                count = _inventoryItems[index].Count * -1;
-                ClearCell(index);
-                UIManager.Instance.InventoryPanel.ClearCell(index);
-            }
-            else
-            {
-                _inventoryItems[index].Count -= count;
-                count = 0;
-                UIManager.Instance.InventoryPanel.SetItemToCell(index, _inventoryItems[index]);
-            }
-            
-        }
-    }
-
-    private void ClearCell(int index)
-    {
-        _inventoryItems[index].Count = 0;
-        _inventoryItems[index].ItemObject = null;
+        EnsureModel();
+        return _model.CountItems(itemObject);
     }
 
     public void SwapItems(int firstIndex, int secondIndex)
     {
-        var temp = _inventoryItems[firstIndex];
-        _inventoryItems[firstIndex] = _inventoryItems[secondIndex];
-        _inventoryItems[secondIndex] = temp;
-
-        UpdateCellUI(firstIndex);
-        UpdateCellUI(secondIndex);
+        EnsureModel();
+        _model.SwapItems(firstIndex, secondIndex);
     }
 
-    private void SelectItemInHolder(int index)
+    public void SelectSlot(int index)
     {
-        _itemsHolder.SetNewItem(_inventoryItems[index].ItemObject.Type);
+        if (index < 0 || index >= InventoryItems.Length || InventoryItems[index].IsEmpty)
+            return;
+
+        ResolveItemsHolder();
+        if (itemsHolder == null)
+        {
+            Debug.LogWarning("InventorySystem cannot equip selected item because ItemsHolder was not found.");
+            return;
+        }
+
+        itemsHolder?.SetNewItem(InventoryItems[index].ItemObject);
     }
 
-    private void UpdateCellUI(int index)
+    private void ResolveItemsHolder()
     {
-        if (_inventoryItems[index].ItemObject != null)
-            UIManager.Instance.InventoryPanel.SetItemToCell(index, _inventoryItems[index]);
-        else
-            UIManager.Instance.InventoryPanel.ClearCell(index);
+        if (itemsHolder == null)
+            itemsHolder = GetComponentInChildren<ItemsHolder>(true);
     }
-}
 
-[Serializable]
-public struct InventoryItem
-{
-    public ItemObject ItemObject;
-    public int Count;
+    private void EnsureModel()
+    {
+        if (_model != null)
+            return;
+
+        _model = new InventoryModel(maxCells, maxItemsInCell);
+    }
 }

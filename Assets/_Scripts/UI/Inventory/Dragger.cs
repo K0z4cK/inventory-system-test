@@ -10,12 +10,14 @@ public class Dragger : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointe
     private Vector3 _offset;
 
     private bool _isActivate = false;
+    private bool _isDragged = false;
 
     public void SetDraggerActive(bool isActive) => _isActivate = isActive;
 
     public void OnPointerDown(PointerEventData eventData)
     {
         _offset = transform.position - Input.mousePosition;
+        _isDragged = false;
         if(_isActivate)
             OnGrabbedObject?.Invoke();
         else
@@ -27,13 +29,17 @@ public class Dragger : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointe
         if (!_isActivate)
             return;
 
-        OnReleasedObject?.Invoke(transform.position);
+        if (_isDragged)
+            OnReleasedObject?.Invoke(transform.position);
+        else
+            OnClickObject?.Invoke();
     }
 
     public void OnDrag(PointerEventData eventData)
     {
         if (!_isActivate)
             return;
+        _isDragged = true;
         transform.position = Input.mousePosition + _offset;
     }
 
@@ -41,6 +47,6 @@ public class Dragger : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointe
     {
         OnReleasedObject = null;
         OnGrabbedObject = null;
+        OnClickObject = null;
     }
 }
-

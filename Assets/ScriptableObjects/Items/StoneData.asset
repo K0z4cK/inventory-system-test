@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 43ab0532e19dc7f4788a40a545df03d7, type: 3}
   m_Name: StoneData
   m_EditorClassIdentifier: 
-  Type: 1
+  ItemId: stone
+  Category: 1
   Name: Stone
   Description: Can use to craft items
   Sprite: {fileID: 21300000, guid: 8ae66f5319a791748acab75de857a943, type: 3}
-  GameObjectPrefab: {fileID: 0}
+  EquippablePrefab: {fileID: 0}

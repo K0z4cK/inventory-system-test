@@ -1,43 +1,55 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Pool;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class InventoryUI : BasePanelUI
 {
-    public event Action<int, int> OnSwapCellItems;
-    public event Action<int> OnCellItemClick;
-
     [Header("Prefabs")]
-    [SerializeField] private DraggableItemUI _itemPrefab;
+    [FormerlySerializedAs("_itemPrefab")]
+    [SerializeField] private DraggableItemUI itemPrefab;
+
+    [Header("Services")]
+    [FormerlySerializedAs("_inventory")]
+    [SerializeField] private InventorySystem inventory;
 
     [Header("Transforms of cells")]
-    [SerializeField] private Transform _cellsGrid;
-    [SerializeField] private Transform _cellsHotbar;
+    [FormerlySerializedAs("_cellsGrid")]
+    [SerializeField] private Transform cellsGrid;
+    [FormerlySerializedAs("_cellsHotbar")]
+    [SerializeField] private Transform cellsHotbar;
 
     [Header("Hotbar")]
-    [SerializeField] private GameObject _hudHotbar;
-    [SerializeField] private Transform _hudHotbarPosition;
-    [SerializeField] private Transform _inventoryHotbarPosition;
+    [FormerlySerializedAs("_hudHotbar")]
+    [SerializeField] private GameObject hudHotbar;
+    [FormerlySerializedAs("_hudHotbarPosition")]
+    [SerializeField] private Transform hudHotbarPosition;
+    [FormerlySerializedAs("_inventoryHotbarPosition")]
+    [SerializeField] private Transform inventoryHotbarPosition;
 
     private List<InventoryCellUI> _inventoryCells = new List<InventoryCellUI>();
     private InventoryCellUI _selectedCell;
 
     private ObjectPool<DraggableItemUI> _itemsPool;
+    private bool _isPanelVisible;
 
     private void Awake()
     {
         _itemsPool = new ObjectPool<DraggableItemUI>(Create, Get, Release);
+        ResolveInventory();
 
-        foreach (Transform cell in _cellsHotbar)
+        foreach (Transform cell in cellsHotbar)
         {
             SetCell(cell);
         }
-        foreach (Transform cell in _cellsGrid)
+        foreach (Transform cell in cellsGrid)
         {
             SetCell(cell);
         }
+
+        SubscribeToInventory();
+        RefreshAllCells();
         HidePanel();
     }
 
@@ -54,40 +66,54 @@ public class InventoryUI : BasePanelUI
         int firstIndex = _inventoryCells.IndexOf(cellUI);
         InventoryCellUI secondCellUI = GetClosestCell(position);
         int secondIndex = _inventoryCells.IndexOf(secondCellUI);
-        OnSwapCellItems?.Invoke(firstIndex, secondIndex);
+        inventory?.SwapItems(firstIndex, secondIndex);
     }
 
     private void OnItemClick(InventoryCellUI cellUI)
     {
         int index = _inventoryCells.IndexOf(cellUI);
+        if (index < 0)
+            return;
 
         if(_selectedCell != null)
             _selectedCell.GetComponent<Image>().enabled = false;
         _selectedCell = cellUI;
         _selectedCell.GetComponent<Image>().enabled = true;
 
-        OnCellItemClick?.Invoke(index);
+        inventory?.SelectSlot(index);
     }
 
     public override void ShowPanel()
     {
+        _isPanelVisible = true;
         base.ShowPanel();
-        _hudHotbar.gameObject.SetActive(false);
-        _cellsHotbar.position = _inventoryHotbarPosition.transform.position;
-        _inventoryCells.ForEach(cell => cell.SetDraggerActive(true));
+        ApplyHotbarState();
+        RefreshAllCells();
     }
 
     public override void HidePanel()
     {
+        _isPanelVisible = false;
         base.HidePanel();
-        _hudHotbar.gameObject.SetActive(true);
-        _cellsHotbar.position = _hudHotbarPosition.position;
-        _inventoryCells.ForEach(cell => cell.SetDraggerActive(false));
+        ApplyHotbarState();
+        RefreshAllCells();
     }
 
-    public void SetItemToCell(int index, InventoryItem item) => _inventoryCells[index].SetItem(_itemsPool, item);
+    public void SetItemToCell(int index, InventoryItem item)
+    {
+        if (!IsValidCellIndex(index))
+            return;
 
-    public void ClearCell(int index) => _inventoryCells[index].ClearCell(_itemsPool);
+        _inventoryCells[index].SetItem(_itemsPool, item);
+    }
+
+    public void ClearCell(int index)
+    {
+        if (!IsValidCellIndex(index))
+            return;
+
+        _inventoryCells[index].ClearCell(_itemsPool);
+    }
 
     private InventoryCellUI GetClosestCell(Vector3 position)
     {
@@ -104,7 +130,7 @@ public class InventoryUI : BasePanelUI
 
     private DraggableItemUI Create()
     {
-        DraggableItemUI newItem = Instantiate(_itemPrefab);
+        DraggableItemUI newItem = Instantiate(itemPrefab);
         newItem.gameObject.SetActive(false);
 
         return newItem;
@@ -118,5 +144,68 @@ public class InventoryUI : BasePanelUI
     private void Release(DraggableItemUI item)
     {
         item.gameObject.SetActive(false);
+    }
+
+    private void ResolveInventory()
+    {
+        if (inventory == null)
+            inventory = FindFirstObjectByType<InventorySystem>();
+    }
+
+    private void SubscribeToInventory()
+    {
+        if (inventory == null)
+        {
+            Debug.LogError("InventoryUI requires InventorySystem.");
+            return;
+        }
+
+        inventory.OnSlotChanged += OnInventorySlotChanged;
+    }
+
+    private void RefreshAllCells()
+    {
+        if (inventory == null)
+            return;
+
+        InventoryItem[] items = inventory.InventoryItems;
+        for (int i = 0; i < _inventoryCells.Count && i < items.Length; i++)
+        {
+            OnInventorySlotChanged(i, items[i]);
+        }
+    }
+
+    private void OnInventorySlotChanged(int index, InventoryItem item)
+    {
+        if (item.IsEmpty)
+            ClearCell(index);
+        else
+            SetItemToCell(index, item);
+
+        ApplyHotbarState();
+    }
+
+    private bool IsValidCellIndex(int index) => index >= 0 && index < _inventoryCells.Count;
+
+    private void ApplyHotbarState()
+    {
+        if (hudHotbar == null || cellsHotbar == null)
+            return;
+
+        hudHotbar.gameObject.SetActive(!_isPanelVisible);
+        cellsHotbar.gameObject.SetActive(true);
+
+        if (_isPanelVisible && inventoryHotbarPosition != null)
+            cellsHotbar.position = inventoryHotbarPosition.position;
+        else if (!_isPanelVisible && hudHotbarPosition != null)
+            cellsHotbar.position = hudHotbarPosition.position;
+
+        _inventoryCells.ForEach(cell => cell.SetDraggerActive(_isPanelVisible));
+    }
+
+    private void OnDestroy()
+    {
+        if (inventory != null)
+            inventory.OnSlotChanged -= OnInventorySlotChanged;
     }
 }

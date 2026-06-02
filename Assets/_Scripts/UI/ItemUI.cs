@@ -1,17 +1,27 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class ItemUI : MonoBehaviour
 {
-    [SerializeField] private Image _icon;
-    [SerializeField] private TMP_Text _countTMP;
+    [FormerlySerializedAs("_icon")]
+    [SerializeField] private Image icon;
+    [FormerlySerializedAs("_countTMP")]
+    [SerializeField] private TMP_Text countTMP;
 
     public void SetItem(InventoryItem item)
     {
-        _icon.sprite = item.ItemObject.Sprite;
-        _countTMP.text = item.Count.ToString();
+        if (item.IsEmpty)
+        {
+            icon.sprite = null;
+            countTMP.text = string.Empty;
+            return;
+        }
+
+        icon.sprite = item.ItemObject.Sprite;
+        countTMP.text = item.Count.ToString();
     }
 
-    public void SetTextColor(Color color) => _countTMP.color = color;
+    public void SetTextColor(Color color) => countTMP.color = color;
 }

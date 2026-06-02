@@ -1,10 +1,12 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public abstract class BasePanelUI : MonoBehaviour
 {
     [Header("Panel")]
-    [SerializeField] private GameObject _panel;
+    [FormerlySerializedAs("_panel")]
+    [SerializeField] private GameObject panel;
 
-    public virtual void ShowPanel() => _panel.SetActive(true);
-    public virtual void HidePanel() => _panel.SetActive(false);
+    public virtual void ShowPanel() => panel.SetActive(true);
+    public virtual void HidePanel() => panel.SetActive(false);
 }

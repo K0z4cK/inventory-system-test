@@ -1,14 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(CharacterController))]
 public class Character : MonoBehaviour, IControllable
 {
-    [SerializeField] private Animator _animator;
-    [SerializeField] private float _speed = 10f;
+    [FormerlySerializedAs("_animator")]
+    [SerializeField] private Animator animator;
+    [FormerlySerializedAs("_speed")]
+    [SerializeField] private float speed = 10f;
 
     private CharacterController _characterController;
-    private InventorySystem _InventorySystem;
+    private InventorySystem _inventorySystem;
     private Transform _transform;
 
     private IPickable _currentPickableItem;
@@ -19,14 +22,14 @@ public class Character : MonoBehaviour, IControllable
     private void Awake()
     {
         _characterController = GetComponent<CharacterController>();
-        _InventorySystem = GetComponent<InventorySystem>();
+        _inventorySystem = GetComponent<InventorySystem>();
         _transform = transform;
     }
 
     public void Action()
     {
         Debug.Log("Action");
-        _animator.SetTrigger("Attack");
+        animator.SetTrigger("Attack");
     }
 
     public void Interact()
@@ -35,17 +38,17 @@ public class Character : MonoBehaviour, IControllable
             return;
         _currentPickableItem.PickUp();
         GetPickableFromQueue();
-        _animator.SetTrigger("Gather");
+        animator.SetTrigger("Gather");
         Debug.Log("Interact");
     }
 
     public void Move(Vector2 direction)
     {
-        Vector3 scaledMovement = new Vector3(direction.x, 0f, direction.y) * _speed * Time.fixedDeltaTime;
+        Vector3 scaledMovement = new Vector3(direction.x, 0f, direction.y) * speed * Time.fixedDeltaTime;
 
         _transform.LookAt(_transform.position + scaledMovement, Vector3.up);
         _characterController.Move(scaledMovement);
-        _animator.SetFloat("Velocity", _characterController.velocity.magnitude);
+        animator.SetFloat("Velocity", _characterController.velocity.magnitude);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -55,8 +58,13 @@ public class Character : MonoBehaviour, IControllable
             if (_currentPickableItem == null)
             {
                 _currentPickableItem = other.GetComponent<IPickable>();
+                if (_currentPickableItem == null)
+                    return;
+
                 _currentPickableItemTransform = other.transform;
-                _currentPickableItem.SubscribeOnItemPickUp(_InventorySystem.AddItems);
+                if (_inventorySystem != null)
+                    _currentPickableItem.SubscribeOnItemPickUp(_inventorySystem.AddItems);
+
                 Debug.Log("Can pick up: " + other.name);
                 return;
             }
@@ -69,7 +77,9 @@ public class Character : MonoBehaviour, IControllable
     {
         if (other.transform == _currentPickableItemTransform)
         {
-            _currentPickableItem.UnsubscribeOnItemPickUp(_InventorySystem.AddItems);
+            if (_currentPickableItem != null && _inventorySystem != null)
+                _currentPickableItem.UnsubscribeOnItemPickUp(_inventorySystem.AddItems);
+
             Debug.Log("Get form Queue: " + _currentPickableItemTransform.name);
             GetPickableFromQueue();           
         }
@@ -89,8 +99,15 @@ public class Character : MonoBehaviour, IControllable
 
         _currentPickableItemTransform = _pickableQueue[0];
         _currentPickableItem = _currentPickableItemTransform.GetComponent<IPickable>();
+        if (_currentPickableItem == null)
+        {
+            _pickableQueue.RemoveAt(0);
+            GetPickableFromQueue();
+            return;
+        }
 
-        _currentPickableItem.SubscribeOnItemPickUp(_InventorySystem.AddItems);
+        if (_inventorySystem != null)
+            _currentPickableItem.SubscribeOnItemPickUp(_inventorySystem.AddItems);
 
         _pickableQueue.RemoveAt(0);
     }

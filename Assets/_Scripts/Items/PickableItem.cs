@@ -1,9 +1,12 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class PickableItem : BaseItem, IPickable
 {
-    [Range(1, 10)][SerializeField] private int _pickUpCount = 1;
+    [Range(1, 10)]
+    [FormerlySerializedAs("_pickUpCount")]
+    [SerializeField] private int pickUpCount = 1;
 
     public event Action<IPickable, ItemObject, int> OnItemPickUp;
 
@@ -14,7 +17,7 @@ public class PickableItem : BaseItem, IPickable
     public void PickUp()
     {
         Debug.Log("Picked up: " + name);
-        OnItemPickUp?.Invoke(this, _itemObject, _pickUpCount);
+        OnItemPickUp?.Invoke(this, _itemObject, pickUpCount);
     }
 
     public void DestroyObject() => Destroy(gameObject);
@@ -24,5 +27,4 @@ public class PickableItem : BaseItem, IPickable
         OnItemPickUp = null;
     }
 }
-
 

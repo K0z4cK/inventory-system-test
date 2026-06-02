@@ -550,6 +550,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _panel: {fileID: 1095979407}
   _craftItemPrefab: {fileID: 2682389861592409345, guid: af58e44a7003f1f459b7195c2ddf29af, type: 3}
+  itemCrafts: {fileID: 11400000, guid: 930e4e9f5d1167c46b76ab7ce306d229, type: 2}
+  inventorySystem: {fileID: 8073086773061355479}
   _craftsLayout: {fileID: 69674357}
   _recipeItems:
   - {fileID: 6817968679410129686}
@@ -11067,52 +11069,6 @@ CapsuleCollider:
   m_Height: 4.05
   m_Direction: 1
   m_Center: {x: 0, y: 1.26, z: 0}
---- !u!1 &1790883855
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1790883857}
-  - component: {fileID: 1790883856}
-  m_Layer: 0
-  m_Name: CraftManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1790883856
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1790883855}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e208cfb7e1d17dc4dbeb3eb7bff8b304, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _itemCrafts: {fileID: 11400000, guid: 930e4e9f5d1167c46b76ab7ce306d229, type: 2}
-  _inventorySystem: {fileID: 8073086773061355479}
---- !u!4 &1790883857
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1790883855}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 446.6297, y: -0.05640865, z: 495.10037}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1821303668
 GameObject:
   m_ObjectHideFlags: 0
@@ -13507,7 +13463,7 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 4162164826716764455, guid: 0000000000000000d000000000000000, type: 0}
     - target: {fileID: 3677975029469257560, guid: 62544bacbf443a74d967af03d8532416, type: 3}
-      propertyPath: _itemsHolder
+      propertyPath: itemsHolder
       value: 
       objectReference: {fileID: 1625456990}
     - target: {fileID: 4816058910732443391, guid: 62544bacbf443a74d967af03d8532416, type: 3}

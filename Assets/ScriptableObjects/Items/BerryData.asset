@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 43ab0532e19dc7f4788a40a545df03d7, type: 3}
   m_Name: BerryData
   m_EditorClassIdentifier: 
-  Type: 3
+  ItemId: berry
+  Category: 2
   Name: Berry
   Description: You can eat it
   Sprite: {fileID: 21300000, guid: 113d35902f6625f4196328e6f511ff65, type: 3}
-  GameObjectPrefab: {fileID: 0}
+  EquippablePrefab: {fileID: 3577243881360276544, guid: 3ab76fab4f8903f4e964fc09670dd391, type: 3}

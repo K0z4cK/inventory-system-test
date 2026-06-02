@@ -1,25 +1,32 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class ItemsHolder : MonoBehaviour
 {
-    [SerializeField] private List<HolderItem> _itemsToHold = new List<HolderItem>();
-
     private GameObject _currentItem;
 
-    public void SetNewItem(ItemType type)
+    public void SetNewItem(ItemObject itemObject)
     {
-        if(_currentItem != null)
-            _currentItem.SetActive(false);
-        _currentItem = _itemsToHold.Find(x=> x.Type == type).Item;
-        _currentItem.SetActive(true);
-    }
-}
+        if (itemObject == null || itemObject.EquippablePrefab == null)
+        {
+            ClearCurrentItem();
+            return;
+        }
 
-[Serializable]
-public struct HolderItem 
-{
-    public ItemType Type;
-    public GameObject Item;
+        if(_currentItem != null)
+            Destroy(_currentItem);
+
+        _currentItem = Instantiate(itemObject.EquippablePrefab, transform);
+        _currentItem.transform.localPosition = Vector3.zero;
+        _currentItem.transform.localRotation = Quaternion.identity;
+        _currentItem.transform.localScale = Vector3.one;
+    }
+
+    private void ClearCurrentItem()
+    {
+        if (_currentItem == null)
+            return;
+
+        Destroy(_currentItem);
+        _currentItem = null;
+    }
 }

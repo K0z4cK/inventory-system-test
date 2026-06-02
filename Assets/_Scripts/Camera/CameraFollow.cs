@@ -1,10 +1,13 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(Camera))]
 public class CameraFollow : MonoBehaviour
 {
-    [SerializeField] private Transform _target;   
-    [SerializeField] private float _smoothTime = 0.15f;
+    [FormerlySerializedAs("_target")]
+    [SerializeField] private Transform target;   
+    [FormerlySerializedAs("_smoothTime")]
+    [SerializeField] private float smoothTime = 0.15f;
 
     private Vector3 _cameraOffest;
     private Vector3 _velocity = Vector3.zero;
@@ -20,7 +23,10 @@ public class CameraFollow : MonoBehaviour
 
     private void FixedUpdate()
     {
-        _targetPosition = _target.position + _cameraOffest;
-        _transform.position = Vector3.SmoothDamp(_transform.position, _targetPosition, ref _velocity, _smoothTime);
+        if (target == null)
+            return;
+
+        _targetPosition = target.position + _cameraOffest;
+        _transform.position = Vector3.SmoothDamp(_transform.position, _targetPosition, ref _velocity, smoothTime);
     }
 }

@@ -10,7 +10,7 @@ public class SingletonComponent<T> : MonoBehaviour where T : MonoBehaviour
         {
             if (_instance == null)
             {
-                _instance = FindObjectOfType<T>();
+                _instance = FindFirstObjectByType<T>();
 
                 if (_instance == null)
                     Debug.LogError($"Singleton {typeof(T)} was not found!");
@@ -22,7 +22,7 @@ public class SingletonComponent<T> : MonoBehaviour where T : MonoBehaviour
 
     private void OnEnable()
     {
-        var curObjectScripts = FindObjectsOfType<T>();
+        var curObjectScripts = FindObjectsByType<T>(FindObjectsSortMode.None);
 
         if (curObjectScripts.Length > 1)
         {

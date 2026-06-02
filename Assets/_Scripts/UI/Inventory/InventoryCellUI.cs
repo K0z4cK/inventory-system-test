@@ -17,6 +17,12 @@ public class InventoryCellUI : MonoBehaviour
 
     public void SetItem(ObjectPool<DraggableItemUI> itemsPool, InventoryItem item)
     {
+        if (item.IsEmpty)
+        {
+            ClearCell(itemsPool);
+            return;
+        }
+
         if (_itemUI == null)
         {
             _itemUI = itemsPool.Get();
@@ -25,12 +31,17 @@ public class InventoryCellUI : MonoBehaviour
 
         _itemUI.transform.localPosition = Vector3.zero;
         _itemUI.SetItem(item);
+        _itemUI.UnsubscribeOnDragger(ChangeItemPosition);
+        _itemUI.UnsubscribeOnClick(ItemClick);
         _itemUI.SubscribeOnDragger(ChangeItemPosition);
         _itemUI.SubscribeOnClick(ItemClick);
     }
 
     public void ClearCell(ObjectPool<DraggableItemUI> itemsPool)
     {
+        if (_itemUI == null)
+            return;
+
         _itemUI.UnsubscribeOnDragger(ChangeItemPosition);
         _itemUI.UnsubscribeOnClick(ItemClick);
         itemsPool.Release(_itemUI);
@@ -67,5 +78,6 @@ public class InventoryCellUI : MonoBehaviour
         }
 
         OnItemPositionChanged = null;
+        OnItemClick = null;
     }
 }
