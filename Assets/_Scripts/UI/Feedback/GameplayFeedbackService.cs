@@ -32,6 +32,16 @@ public class GameplayFeedbackService : IGameplayFeedback
         ShowMessage(string.IsNullOrWhiteSpace(reason) ? "Cannot craft selected item" : reason);
     }
 
+    public void ShowItemDiscovered(ItemObject itemObject, int discoveredCount, int totalCount)
+    {
+        ShowMessage($"New discovery: {GetItemName(itemObject)} ({discoveredCount}/{totalCount})");
+    }
+
+    public void ShowCollectionMilestone(string rankName, int discoveredCount, int totalCount)
+    {
+        ShowMessage($"{rankName}: collection progress {discoveredCount}/{totalCount}");
+    }
+
     private string GetItemName(ItemObject itemObject)
     {
         if (itemObject == null)

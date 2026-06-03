@@ -151,12 +151,61 @@ public class InventoryArchitectureTests
         Assert.That(receivedMessage, Is.EqualTo("Picked up wood x2"));
     }
 
+    [Test]
+    public void CollectionProgressService_DiscoversEachItemIdOnlyOnce()
+    {
+        ItemObject wood = CreateItem("wood");
+        InventoryModel inventory = new InventoryModel(2, 5);
+        CollectionProgressService progressService = new CollectionProgressService(CreateDatabase(wood), inventory);
+        int discoveryCount = 0;
+
+        progressService.OnItemDiscovered += (_, _, _) => discoveryCount++;
+
+        inventory.TryAddItems(wood, 1);
+        inventory.TryAddItems(wood, 1);
+
+        Assert.That(progressService.IsDiscovered(wood), Is.True);
+        Assert.That(progressService.DiscoveredCount, Is.EqualTo(1));
+        Assert.That(discoveryCount, Is.EqualTo(1));
+
+        progressService.Dispose();
+    }
+
+    [Test]
+    public void CollectionProgressService_ReachesMasterCollector_WhenAllItemsAreDiscovered()
+    {
+        ItemObject wood = CreateItem("wood");
+        ItemObject stone = CreateItem("stone");
+        InventoryModel inventory = new InventoryModel(2, 5);
+        CollectionProgressService progressService = new CollectionProgressService(CreateDatabase(wood, stone), inventory);
+        string lastRank = null;
+
+        progressService.OnMilestoneReached += (rank, _, _) => lastRank = rank;
+
+        inventory.TryAddItems(wood, 1);
+        inventory.TryAddItems(stone, 1);
+
+        Assert.That(progressService.DiscoveredCount, Is.EqualTo(2));
+        Assert.That(progressService.TotalCount, Is.EqualTo(2));
+        Assert.That(progressService.CurrentRank, Is.EqualTo("Master Collector"));
+        Assert.That(lastRank, Is.EqualTo("Master Collector"));
+
+        progressService.Dispose();
+    }
+
     private static ItemObject CreateItem(string itemId)
     {
         ItemObject item = ScriptableObject.CreateInstance<ItemObject>();
         item.ItemId = itemId;
         item.Name = itemId;
         return item;
+    }
+
+    private static ItemDatabase CreateDatabase(params ItemObject[] items)
+    {
+        ItemDatabase itemDatabase = ScriptableObject.CreateInstance<ItemDatabase>();
+        SerializedObjectUtility.SetPrivateList(itemDatabase, "items", new List<ItemObject>(items));
+        return itemDatabase;
     }
 
     private static ItemCrafts CreateCrafts(params ItemCraftStruct[] crafts)
