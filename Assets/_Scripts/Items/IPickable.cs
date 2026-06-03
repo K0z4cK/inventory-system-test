@@ -2,9 +2,9 @@
 
 public interface IPickable
 {
-    public event Action<IPickable, ItemObject, int> OnItemPickUp;
-    public void SubscribeOnItemPickUp(Action<IPickable, ItemObject, int> onItemPickUp);
-    public void UnsubscribeOnItemPickUp(Action<IPickable, ItemObject, int> onItemPickUp);
-    public void PickUp();
+    public event Func<IPickable, ItemObject, int, bool> OnItemPickUp;
+    public void SubscribeOnItemPickUp(Func<IPickable, ItemObject, int, bool> onItemPickUp);
+    public void UnsubscribeOnItemPickUp(Func<IPickable, ItemObject, int, bool> onItemPickUp);
+    public bool PickUp();
     public void DestroyObject();
 }

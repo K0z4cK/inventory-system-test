@@ -168,8 +168,8 @@ public class InventoryUI : BasePanelUI
         if (inventory == null)
             return;
 
-        InventoryItem[] items = inventory.InventoryItems;
-        for (int i = 0; i < _inventoryCells.Count && i < items.Length; i++)
+        IReadOnlyList<InventoryItem> items = inventory.InventoryItems;
+        for (int i = 0; i < _inventoryCells.Count && i < items.Count; i++)
         {
             OnInventorySlotChanged(i, items[i]);
         }

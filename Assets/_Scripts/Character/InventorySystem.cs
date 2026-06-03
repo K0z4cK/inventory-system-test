@@ -42,7 +42,7 @@ public class InventorySystem : MonoBehaviour, IInventory
         }
     }
 
-    public InventoryItem[] InventoryItems
+    public IReadOnlyList<InventoryItem> InventoryItems
     {
         get
         {
@@ -67,15 +67,16 @@ public class InventorySystem : MonoBehaviour, IInventory
         EnsureModel();
     }
 
-    public void AddItems(IPickable pickable, ItemObject itemObject, int count = 1)
+    public bool AddItems(IPickable pickable, ItemObject itemObject, int count = 1)
     {
         if (TryAddItems(itemObject, count))
         {
             pickable?.DestroyObject();
-            return;
+            return true;
         }
 
         Debug.Log("Inventory Full");
+        return false;
     }
 
     public bool CanAddItems(ItemObject itemObject, int count = 1)
@@ -122,7 +123,8 @@ public class InventorySystem : MonoBehaviour, IInventory
 
     public void SelectSlot(int index)
     {
-        if (index < 0 || index >= InventoryItems.Length || InventoryItems[index].IsEmpty)
+        IReadOnlyList<InventoryItem> inventoryItems = InventoryItems;
+        if (index < 0 || index >= inventoryItems.Count || inventoryItems[index].IsEmpty)
             return;
 
         ResolveItemsHolder();
@@ -132,7 +134,7 @@ public class InventorySystem : MonoBehaviour, IInventory
             return;
         }
 
-        itemsHolder?.SetNewItem(InventoryItems[index].ItemObject);
+        itemsHolder?.SetNewItem(inventoryItems[index].ItemObject);
     }
 
     private void ResolveItemsHolder()

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using UnityEngine;
 
 public class InventoryModel : IInventory
@@ -8,14 +9,16 @@ public class InventoryModel : IInventory
     public event Action OnInventoryChanged;
 
     private readonly InventoryItem[] _inventoryItems;
+    private readonly ReadOnlyCollection<InventoryItem> _readOnlyInventoryItems;
     private readonly int _maxItemsInCell;
 
-    public InventoryItem[] InventoryItems => _inventoryItems;
+    public IReadOnlyList<InventoryItem> InventoryItems => _readOnlyInventoryItems;
     public int Capacity => _inventoryItems.Length;
 
     public InventoryModel(int maxCells, int maxItemsInCell)
     {
         _inventoryItems = new InventoryItem[Mathf.Max(0, maxCells)];
+        _readOnlyInventoryItems = Array.AsReadOnly(_inventoryItems);
         _maxItemsInCell = Mathf.Max(1, maxItemsInCell);
     }
 

@@ -36,7 +36,10 @@ public class Character : MonoBehaviour, IControllable
     {
         if (_currentPickableItem == null)
             return;
-        _currentPickableItem.PickUp();
+
+        if (!_currentPickableItem.PickUp())
+            return;
+
         GetPickableFromQueue();
         animator.SetTrigger("Gather");
         Debug.Log("Interact");

@@ -8,16 +8,27 @@ public class PickableItem : BaseItem, IPickable
     [FormerlySerializedAs("_pickUpCount")]
     [SerializeField] private int pickUpCount = 1;
 
-    public event Action<IPickable, ItemObject, int> OnItemPickUp;
+    public event Func<IPickable, ItemObject, int, bool> OnItemPickUp;
 
-    public void SubscribeOnItemPickUp(Action<IPickable, ItemObject, int> onItemPickUp) => OnItemPickUp += onItemPickUp;
+    public void SubscribeOnItemPickUp(Func<IPickable, ItemObject, int, bool> onItemPickUp) => OnItemPickUp += onItemPickUp;
 
-    public void UnsubscribeOnItemPickUp(Action<IPickable, ItemObject, int> onItemPickUp) => OnItemPickUp -= onItemPickUp;
+    public void UnsubscribeOnItemPickUp(Func<IPickable, ItemObject, int, bool> onItemPickUp) => OnItemPickUp -= onItemPickUp;
 
-    public void PickUp()
+    public bool PickUp()
     {
-        Debug.Log("Picked up: " + name);
-        OnItemPickUp?.Invoke(this, _itemObject, pickUpCount);
+        if (OnItemPickUp == null)
+            return false;
+
+        bool pickedUp = false;
+        foreach (Func<IPickable, ItemObject, int, bool> listener in OnItemPickUp.GetInvocationList())
+        {
+            pickedUp |= listener.Invoke(this, _itemObject, pickUpCount);
+        }
+
+        if (pickedUp)
+            Debug.Log("Picked up: " + name);
+
+        return pickedUp;
     }
 
     public void DestroyObject() => Destroy(gameObject);
@@ -27,4 +38,3 @@ public class PickableItem : BaseItem, IPickable
         OnItemPickUp = null;
     }
 }
-

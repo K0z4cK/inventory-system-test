@@ -6,7 +6,7 @@ public interface IInventory
     event Action<int, InventoryItem> OnSlotChanged;
     event Action OnInventoryChanged;
 
-    InventoryItem[] InventoryItems { get; }
+    IReadOnlyList<InventoryItem> InventoryItems { get; }
     int Capacity { get; }
 
     bool CanAddItems(ItemObject itemObject, int count = 1);
