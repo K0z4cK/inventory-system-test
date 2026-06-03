@@ -19,11 +19,12 @@ public class CraftUI : BasePanelUI
     [FormerlySerializedAs("_craftButton")]
     [SerializeField] private Button craftButton;
 
-    private List<CraftItemUI> _craftItems = new List<CraftItemUI>();
+    private readonly List<CraftItemUI> _craftItems = new List<CraftItemUI>();
     private CraftItemUI _selectedItem;
     private ItemCraftStruct? _selectedCraft;
     private CraftingService _craftingService;
     private IInventory _inventory;
+    private IGameplayFeedback _feedback;
     private ItemCrafts _itemCrafts;
 
     private bool _isShowAllCrafts = true;
@@ -33,13 +34,14 @@ public class CraftUI : BasePanelUI
         HidePanel();
     }
 
-    public void Initialize(ItemCrafts crafts, IInventory inventory)
+    public void Initialize(ItemCrafts crafts, IInventory inventory, IGameplayFeedback feedback)
     {
         if (_inventory != null)
             _inventory.OnInventoryChanged -= RefreshCraftState;
 
         _itemCrafts = crafts;
         _inventory = inventory;
+        _feedback = feedback;
         _craftingService = new CraftingService(_itemCrafts, _inventory);
 
         if (_inventory != null)
@@ -91,6 +93,12 @@ public class CraftUI : BasePanelUI
             Debug.LogWarning("Craft UI has no crafts to show. Check ItemCrafts reference and recipes.");
         }
 
+        if (craftItemPrefab == null || craftsLayout == null)
+        {
+            Debug.LogError("CraftUI requires CraftItemUI prefab and crafts layout references.");
+            return;
+        }
+
         for(int i = 0; i < craftsToShow.Count; i++)
         {
             if(_craftItems.Count <= i)
@@ -98,7 +106,7 @@ public class CraftUI : BasePanelUI
                var newCraftItem = Instantiate(craftItemPrefab, craftsLayout);
                 _craftItems.Add(newCraftItem);
             }
-            _craftItems[i].Init(craftsToShow[i], ShowCraftRecipe);
+            _craftItems[i].Init(craftsToShow[i], (itemCraft, itemUI) => ShowCraftRecipe(itemCraft, itemUI, true));
             _craftItems[i].gameObject.SetActive(true);
         }
 
@@ -108,7 +116,7 @@ public class CraftUI : BasePanelUI
         }
     }
 
-    private void ShowCraftRecipe(ItemCraftStruct itemCraft, CraftItemUI itemUI)
+    private void ShowCraftRecipe(ItemCraftStruct itemCraft, CraftItemUI itemUI, bool showUnavailableFeedback = false)
     {
         if (_craftingService == null)
             return;
@@ -119,7 +127,12 @@ public class CraftUI : BasePanelUI
         craftButton.onClick.RemoveAllListeners();
         craftButton.onClick.AddListener(delegate
         {
-            _craftingService.TryCraft(itemCraft);
+            bool crafted = _craftingService.TryCraft(itemCraft);
+            if (crafted)
+                _feedback?.ShowCraftSucceeded(itemCraft.ItemResult.ItemObject, itemCraft.ItemResult.Count);
+            else
+                _feedback?.ShowCraftUnavailable(GetCraftUnavailableReason(itemCraft));
+
             ShowCraftRecipe(itemCraft, itemUI);
         });
 
@@ -143,7 +156,31 @@ public class CraftUI : BasePanelUI
                 recipeItems[i].SetTextColor(Color.red);
         }
 
-        craftButton.interactable = _craftingService.CanCraft(itemCraft);
+        bool canCraft = _craftingService.CanCraft(itemCraft);
+        craftButton.interactable = canCraft;
+
+        if (!canCraft && showUnavailableFeedback)
+            _feedback?.ShowCraftUnavailable(GetCraftUnavailableReason(itemCraft));
+    }
+
+    private string GetCraftUnavailableReason(ItemCraftStruct itemCraft)
+    {
+        if (itemCraft.ItemResult.IsEmpty)
+            return "Cannot craft: recipe has no result item";
+
+        List<InventoryItem> missingItems = _craftingService.GetMissingItems(itemCraft.CraftRecipe);
+        if (missingItems.Count > 0)
+            return $"Missing {GetItemName(missingItems[0].ItemObject)} x{missingItems[0].Count}";
+
+        return "Cannot craft: inventory has no space for result";
+    }
+
+    private string GetItemName(ItemObject itemObject)
+    {
+        if (itemObject == null)
+            return "item";
+
+        return string.IsNullOrWhiteSpace(itemObject.Name) ? itemObject.ItemId : itemObject.Name;
     }
 
     private void RefreshCraftState()

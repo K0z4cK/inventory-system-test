@@ -138,6 +138,19 @@ public class InventoryArchitectureTests
         Assert.That(itemDatabase.GetValidationErrors(), Has.Some.Contains("Duplicate ItemId 'wood'"));
     }
 
+    [Test]
+    public void GameplayFeedbackService_RaisesMessage_WhenPickupFeedbackRequested()
+    {
+        ItemObject wood = CreateItem("wood");
+        GameplayFeedbackService feedbackService = new GameplayFeedbackService();
+        string receivedMessage = null;
+
+        feedbackService.OnMessageRaised += message => receivedMessage = message;
+        feedbackService.ShowPickedUp(wood, 2);
+
+        Assert.That(receivedMessage, Is.EqualTo("Picked up wood x2"));
+    }
+
     private static ItemObject CreateItem(string itemId)
     {
         ItemObject item = ScriptableObject.CreateInstance<ItemObject>();

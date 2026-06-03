@@ -39,6 +39,25 @@ public class CraftingService
         return itemsForCraft;
     }
 
+    public List<InventoryItem> GetMissingItems(List<InventoryItem> craftRecipe)
+    {
+        List<InventoryItem> missingItems = new List<InventoryItem>();
+        if (_inventory == null || craftRecipe == null)
+            return missingItems;
+
+        foreach (InventoryItem item in craftRecipe)
+        {
+            if (item.IsEmpty)
+                continue;
+
+            int missingCount = item.Count - _inventory.CountItems(item.ItemObject);
+            if (missingCount > 0)
+                missingItems.Add(new InventoryItem(item.ItemObject, missingCount));
+        }
+
+        return missingItems;
+    }
+
     public bool CanCraft(ItemCraftStruct craft)
     {
         if (_inventory == null || craft.CraftRecipe == null || craft.ItemResult.IsEmpty)

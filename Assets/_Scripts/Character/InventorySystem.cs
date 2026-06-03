@@ -13,6 +13,7 @@ public class InventorySystem : MonoBehaviour, IInventory, IInventorySlotSelector
     [SerializeField] private int maxItemsInCell;
 
     private InventoryModel _model;
+    private IGameplayFeedback _feedback;
 
     public event System.Action<int, InventoryItem> OnSlotChanged
     {
@@ -67,14 +68,21 @@ public class InventorySystem : MonoBehaviour, IInventory, IInventorySlotSelector
         EnsureModel();
     }
 
+    public void Initialize(IGameplayFeedback feedback)
+    {
+        _feedback = feedback;
+    }
+
     public bool AddItems(IPickable pickable, ItemObject itemObject, int count = 1)
     {
         if (TryAddItems(itemObject, count))
         {
+            _feedback?.ShowPickedUp(itemObject, count);
             pickable?.DestroyObject();
             return true;
         }
 
+        _feedback?.ShowInventoryFull(itemObject, count);
         Debug.Log("Inventory Full");
         return false;
     }
