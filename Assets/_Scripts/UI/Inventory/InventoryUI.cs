@@ -10,10 +10,6 @@ public class InventoryUI : BasePanelUI
     [FormerlySerializedAs("_itemPrefab")]
     [SerializeField] private DraggableItemUI itemPrefab;
 
-    [Header("Services")]
-    [FormerlySerializedAs("_inventory")]
-    [SerializeField] private InventorySystem inventory;
-
     [Header("Transforms of cells")]
     [FormerlySerializedAs("_cellsGrid")]
     [SerializeField] private Transform cellsGrid;
@@ -32,12 +28,13 @@ public class InventoryUI : BasePanelUI
     private InventoryCellUI _selectedCell;
 
     private ObjectPool<DraggableItemUI> _itemsPool;
+    private IInventory _inventory;
+    private IInventorySlotSelector _slotSelector;
     private bool _isPanelVisible;
 
     private void Awake()
     {
         _itemsPool = new ObjectPool<DraggableItemUI>(Create, Get, Release);
-        ResolveInventory();
 
         foreach (Transform cell in cellsHotbar)
         {
@@ -48,9 +45,25 @@ public class InventoryUI : BasePanelUI
             SetCell(cell);
         }
 
-        SubscribeToInventory();
-        RefreshAllCells();
         HidePanel();
+    }
+
+    public void Initialize(IInventory inventorySource, IInventorySlotSelector slotSelector)
+    {
+        if (_inventory != null)
+            _inventory.OnSlotChanged -= OnInventorySlotChanged;
+
+        _inventory = inventorySource;
+        _slotSelector = slotSelector;
+
+        if (_inventory == null)
+        {
+            Debug.LogError("InventoryUI requires IInventory.");
+            return;
+        }
+
+        _inventory.OnSlotChanged += OnInventorySlotChanged;
+        RefreshAllCells();
     }
 
     private void SetCell(Transform cell)
@@ -66,7 +79,7 @@ public class InventoryUI : BasePanelUI
         int firstIndex = _inventoryCells.IndexOf(cellUI);
         InventoryCellUI secondCellUI = GetClosestCell(position);
         int secondIndex = _inventoryCells.IndexOf(secondCellUI);
-        inventory?.SwapItems(firstIndex, secondIndex);
+        _inventory?.SwapItems(firstIndex, secondIndex);
     }
 
     private void OnItemClick(InventoryCellUI cellUI)
@@ -80,7 +93,7 @@ public class InventoryUI : BasePanelUI
         _selectedCell = cellUI;
         _selectedCell.GetComponent<Image>().enabled = true;
 
-        inventory?.SelectSlot(index);
+        _slotSelector?.SelectSlot(index);
     }
 
     public override void ShowPanel()
@@ -146,29 +159,12 @@ public class InventoryUI : BasePanelUI
         item.gameObject.SetActive(false);
     }
 
-    private void ResolveInventory()
-    {
-        if (inventory == null)
-            inventory = FindFirstObjectByType<InventorySystem>();
-    }
-
-    private void SubscribeToInventory()
-    {
-        if (inventory == null)
-        {
-            Debug.LogError("InventoryUI requires InventorySystem.");
-            return;
-        }
-
-        inventory.OnSlotChanged += OnInventorySlotChanged;
-    }
-
     private void RefreshAllCells()
     {
-        if (inventory == null)
+        if (_inventory == null)
             return;
 
-        IReadOnlyList<InventoryItem> items = inventory.InventoryItems;
+        IReadOnlyList<InventoryItem> items = _inventory.InventoryItems;
         for (int i = 0; i < _inventoryCells.Count && i < items.Count; i++)
         {
             OnInventorySlotChanged(i, items[i]);
@@ -205,7 +201,7 @@ public class InventoryUI : BasePanelUI
 
     private void OnDestroy()
     {
-        if (inventory != null)
-            inventory.OnSlotChanged -= OnInventorySlotChanged;
+        if (_inventory != null)
+            _inventory.OnSlotChanged -= OnInventorySlotChanged;
     }
 }

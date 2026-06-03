@@ -9,10 +9,6 @@ public class CraftUI : BasePanelUI
     [FormerlySerializedAs("_craftItemPrefab")]
     [SerializeField] private CraftItemUI craftItemPrefab;
 
-    [Header("Services")]
-    [SerializeField] private ItemCrafts itemCrafts;
-    [SerializeField] private InventorySystem inventorySystem;
-
     [Header("Crafts Layout")]
     [FormerlySerializedAs("_craftsLayout")]
     [SerializeField] private Transform craftsLayout;
@@ -27,16 +23,32 @@ public class CraftUI : BasePanelUI
     private CraftItemUI _selectedItem;
     private ItemCraftStruct? _selectedCraft;
     private CraftingService _craftingService;
+    private IInventory _inventory;
+    private ItemCrafts _itemCrafts;
 
     private bool _isShowAllCrafts = true;
 
     private void Awake()
     {
-        ResolveDependencies();
-        _craftingService = new CraftingService(itemCrafts, inventorySystem);
+        HidePanel();
+    }
 
-        if (inventorySystem != null)
-            inventorySystem.OnInventoryChanged += RefreshCraftState;
+    public void Initialize(ItemCrafts crafts, IInventory inventory)
+    {
+        if (_inventory != null)
+            _inventory.OnInventoryChanged -= RefreshCraftState;
+
+        _itemCrafts = crafts;
+        _inventory = inventory;
+        _craftingService = new CraftingService(_itemCrafts, _inventory);
+
+        if (_inventory != null)
+            _inventory.OnInventoryChanged += RefreshCraftState;
+        else
+            Debug.LogError("CraftUI requires IInventory.");
+
+        if (_itemCrafts == null)
+            Debug.LogError("CraftUI requires ItemCrafts.");
     }
 
     public override void ShowPanel()
@@ -142,24 +154,9 @@ public class CraftUI : BasePanelUI
             ShowCraftRecipe(_selectedCraft.Value, _selectedItem);
     }
 
-    private void ResolveDependencies()
-    {
-        if (itemCrafts == null)
-            itemCrafts = Resources.Load<ItemCrafts>("ItemCrafts");
-
-        if (itemCrafts == null)
-            Debug.LogError("CraftUI requires ItemCrafts. Assign it in the inspector or place ItemCrafts.asset in a Resources folder.");
-
-        if (inventorySystem == null)
-            inventorySystem = FindFirstObjectByType<InventorySystem>();
-
-        if (inventorySystem == null)
-            Debug.LogError("CraftUI requires InventorySystem.");
-    }
-
     private void OnDestroy()
     {
-        if (inventorySystem != null)
-            inventorySystem.OnInventoryChanged -= RefreshCraftState;
+        if (_inventory != null)
+            _inventory.OnInventoryChanged -= RefreshCraftState;
     }
 }

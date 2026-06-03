@@ -7,15 +7,15 @@ public abstract class BasePanelUI : MonoBehaviour
     [FormerlySerializedAs("_panel")]
     [SerializeField] private GameObject panel;
 
+    protected GameObject Panel => panel != null ? panel : gameObject;
+
     public virtual void ShowPanel()
     {
-        if (panel != null)
-            panel.SetActive(true);
+        Panel.SetActive(true);
     }
 
     public virtual void HidePanel()
     {
-        if (panel != null)
-            panel.SetActive(false);
+        Panel.SetActive(false);
     }
 }

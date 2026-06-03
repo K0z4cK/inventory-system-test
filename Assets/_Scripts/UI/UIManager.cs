@@ -1,8 +1,9 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
-public class UIManager : SingletonComponent<UIManager>
+public class UIManager : MonoBehaviour
 {
     [Header("Inventory")]
     [FormerlySerializedAs("_inventoryPanel")]
@@ -30,6 +31,8 @@ public class UIManager : SingletonComponent<UIManager>
 
     private void Awake()
     {
+        EnsureCollectionButton();
+
         if (showInventoryBtn != null && inventoryPanel != null)
             showInventoryBtn.onClick.AddListener(inventoryPanel.ShowPanel);
         if (hideInventoryBtn != null && inventoryPanel != null)
@@ -46,4 +49,48 @@ public class UIManager : SingletonComponent<UIManager>
             hideCollectionBtn.onClick.AddListener(collectionPanel.HidePanel);
     }
 
+    private void EnsureCollectionButton()
+    {
+        if (showCollectionBtn != null || collectionPanel == null)
+            return;
+
+        Transform parent = transform.Find("HUD") != null ? transform.Find("HUD") : transform;
+        showCollectionBtn = CreateButton("ButtonCollection", parent, "Items", new Vector2(-20f, 532f));
+    }
+
+    private Button CreateButton(string objectName, Transform parent, string value, Vector2 anchoredPosition)
+    {
+        GameObject buttonObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        buttonObject.transform.SetParent(parent, false);
+
+        RectTransform rectTransform = buttonObject.GetComponent<RectTransform>();
+        rectTransform.anchorMin = new Vector2(1f, 0f);
+        rectTransform.anchorMax = new Vector2(1f, 0f);
+        rectTransform.pivot = new Vector2(1f, 0f);
+        rectTransform.anchoredPosition = anchoredPosition;
+        rectTransform.sizeDelta = new Vector2(150f, 96f);
+
+        Image image = buttonObject.GetComponent<Image>();
+        image.color = Color.white;
+
+        Button button = buttonObject.GetComponent<Button>();
+
+        GameObject labelObject = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        labelObject.transform.SetParent(buttonObject.transform, false);
+
+        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+
+        TMP_Text label = labelObject.GetComponent<TMP_Text>();
+        label.text = value;
+        label.fontSize = 24f;
+        label.fontStyle = FontStyles.Bold;
+        label.alignment = TextAlignmentOptions.Center;
+        label.color = Color.black;
+
+        return button;
+    }
 }

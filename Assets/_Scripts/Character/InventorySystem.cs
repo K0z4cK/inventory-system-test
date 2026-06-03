@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.Serialization;
 
-public class InventorySystem : MonoBehaviour, IInventory
+public class InventorySystem : MonoBehaviour, IInventory, IInventorySlotSelector
 {
     [FormerlySerializedAs("_itemsHolder")]
     [SerializeField] private ItemsHolder itemsHolder;

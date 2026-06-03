@@ -550,8 +550,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _panel: {fileID: 1095979407}
   _craftItemPrefab: {fileID: 2682389861592409345, guid: af58e44a7003f1f459b7195c2ddf29af, type: 3}
-  itemCrafts: {fileID: 11400000, guid: 930e4e9f5d1167c46b76ab7ce306d229, type: 2}
-  inventorySystem: {fileID: 8073086773061355479}
   _craftsLayout: {fileID: 69674357}
   _recipeItems:
   - {fileID: 6817968679410129686}
@@ -2380,6 +2378,97 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4480343196654689422, guid: 67ab60996de103b48a0264123175bdf7, type: 3}
   m_PrefabInstance: {fileID: 289428666}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2300000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2300000002}
+  - component: {fileID: 2300000003}
+  - component: {fileID: 2300000004}
+  - component: {fileID: 2300000005}
+  m_Layer: 5
+  m_Name: CollectionPanel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2300000002
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2300000001}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 779292054}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 720, y: 520}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &2300000003
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2300000001}
+  m_CullTransparentMesh: 1
+--- !u!114 &2300000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2300000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.08, g: 0.09, b: 0.1, a: 0.96}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!114 &2300000005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2300000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfb2f17ec8c6431d80e48a11152cc395, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  panel: {fileID: 2300000001}
+  itemPrefab: {fileID: 0}
+  itemsLayout: {fileID: 0}
 --- !u!1 &301528449
 GameObject:
   m_ObjectHideFlags: 0
@@ -6314,6 +6403,7 @@ GameObject:
   - component: {fileID: 779292052}
   - component: {fileID: 779292051}
   - component: {fileID: 779292055}
+  - component: {fileID: 779292056}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -6399,6 +6489,7 @@ RectTransform:
   - {fileID: 1688974698}
   - {fileID: 471383719}
   - {fileID: 53294913}
+  - {fileID: 2300000002}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -6424,6 +6515,27 @@ MonoBehaviour:
   _craftPanel: {fileID: 53294914}
   _showCraftBtn: {fileID: 764009663}
   _hideCraftBtn: {fileID: 74754108}
+  collectionPanel: {fileID: 2300000005}
+  showCollectionBtn: {fileID: 0}
+  hideCollectionBtn: {fileID: 0}
+--- !u!114 &779292056
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 779292050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 178961093ad4426b8fda593bb527f837, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerInventory: {fileID: 8073086773061355479}
+  itemCrafts: {fileID: 11400000, guid: 930e4e9f5d1167c46b76ab7ce306d229, type: 2}
+  itemDatabase: {fileID: 11400000, guid: 00e65e70c0f5450a9c9bf45f88763095, type: 2}
+  inventoryUI: {fileID: 471383722}
+  craftUI: {fileID: 53294914}
+  collectionUI: {fileID: 2300000005}
 --- !u!1 &803788697
 GameObject:
   m_ObjectHideFlags: 0
@@ -10491,33 +10603,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1112093198604240001, guid: 62544bacbf443a74d967af03d8532416, type: 3}
   m_PrefabInstance: {fileID: 6082716970693152355}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1625456990
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1625456988}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2fdd2c634e0cc5c47bc0282b58ee8762, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _itemsToHold:
-  - Type: 0
-    Item: {fileID: 672128977}
-  - Type: 1
-    Item: {fileID: 348271317}
-  - Type: 2
-    Item: {fileID: 1959176409}
-  - Type: 3
-    Item: {fileID: 172148149}
-  - Type: 4
-    Item: {fileID: 1343728295}
-  - Type: 5
-    Item: {fileID: 1602747490}
-  - Type: 6
-    Item: {fileID: 1936830823}
 --- !u!1 &1626232120
 GameObject:
   m_ObjectHideFlags: 0
@@ -13462,10 +13547,6 @@ PrefabInstance:
       propertyPath: m_Icon
       value: 
       objectReference: {fileID: 4162164826716764455, guid: 0000000000000000d000000000000000, type: 0}
-    - target: {fileID: 3677975029469257560, guid: 62544bacbf443a74d967af03d8532416, type: 3}
-      propertyPath: itemsHolder
-      value: 
-      objectReference: {fileID: 1625456990}
     - target: {fileID: 4816058910732443391, guid: 62544bacbf443a74d967af03d8532416, type: 3}
       propertyPath: m_LocalPosition.x
       value: 445.66
@@ -13534,10 +13615,7 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1112093198604240001, guid: 62544bacbf443a74d967af03d8532416, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1602747489}
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 371139977457972907, guid: 62544bacbf443a74d967af03d8532416, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1625456990}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 62544bacbf443a74d967af03d8532416, type: 3}
 --- !u!1001 &6354464857967184056
 PrefabInstance:
