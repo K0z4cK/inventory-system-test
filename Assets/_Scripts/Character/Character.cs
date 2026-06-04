@@ -9,6 +9,7 @@ public class Character : MonoBehaviour, IControllable
     [SerializeField] private Animator animator;
     [FormerlySerializedAs("_speed")]
     [SerializeField] private float speed = 10f;
+    [SerializeField] private InteractableHighlightPresenter interactableHighlightPresenter;
 
     private CharacterController _characterController;
     private InventorySystem _inventorySystem;
@@ -23,6 +24,9 @@ public class Character : MonoBehaviour, IControllable
     {
         _characterController = GetComponent<CharacterController>();
         _inventorySystem = GetComponent<InventorySystem>();
+        if (interactableHighlightPresenter == null)
+            interactableHighlightPresenter = GetComponentInChildren<InteractableHighlightPresenter>(true);
+
         _transform = transform;
     }
 
@@ -34,13 +38,20 @@ public class Character : MonoBehaviour, IControllable
 
     public void Interact()
     {
-        if (_currentInteractable == null)
+        if (!IsInteractableAvailable(_currentInteractable))
+        {
+            GetInteractableFromQueue();
             return;
+        }
 
         if (!_currentInteractable.Interact(this))
             return;
 
-        GetInteractableFromQueue();
+        if (!IsInteractableAvailable(_currentInteractable))
+            GetInteractableFromQueue();
+        else if (interactableHighlightPresenter != null)
+            interactableHighlightPresenter.Show(_currentInteractableTransform);
+
         animator.SetTrigger("Gather");
         Debug.Log("Interact");
     }
@@ -70,13 +81,12 @@ public class Character : MonoBehaviour, IControllable
     private void OnTriggerEnter(Collider other)
     {
         IInteractable interactable = other.GetComponent<IInteractable>();
-        if (interactable == null)
+        if (!IsInteractableAvailable(interactable))
             return;
 
         if (_currentInteractable == null)
         {
-            _currentInteractable = interactable;
-            _currentInteractableTransform = other.transform;
+            SetCurrentInteractable(other.transform, interactable);
             Debug.Log("Can interact: " + other.name);
             return;
         }
@@ -100,21 +110,57 @@ public class Character : MonoBehaviour, IControllable
 
     private void GetInteractableFromQueue()
     {
-        _currentInteractable = null;
-        _currentInteractableTransform = null;
+        ClearCurrentInteractable();
 
         if (_interactableQueue.Count == 0)
             return;
 
-        _currentInteractableTransform = _interactableQueue[0];
-        _currentInteractable = _currentInteractableTransform.GetComponent<IInteractable>();
-        if (_currentInteractable == null)
+        Transform interactableTransform = _interactableQueue[0];
+        if (interactableTransform == null)
         {
             _interactableQueue.RemoveAt(0);
             GetInteractableFromQueue();
             return;
         }
 
+        IInteractable interactable = interactableTransform.GetComponent<IInteractable>();
+        if (!IsInteractableAvailable(interactable))
+        {
+            _interactableQueue.RemoveAt(0);
+            GetInteractableFromQueue();
+            return;
+        }
+
+        SetCurrentInteractable(interactableTransform, interactable);
         _interactableQueue.RemoveAt(0);
+    }
+
+    private void SetCurrentInteractable(Transform interactableTransform, IInteractable interactable)
+    {
+        _currentInteractable = interactable;
+        _currentInteractableTransform = interactableTransform;
+        if (interactableHighlightPresenter != null)
+            interactableHighlightPresenter.Show(interactableTransform);
+    }
+
+    private void ClearCurrentInteractable()
+    {
+        if (interactableHighlightPresenter != null)
+            interactableHighlightPresenter.Hide();
+
+        _currentInteractable = null;
+        _currentInteractableTransform = null;
+    }
+
+    private bool IsInteractableAvailable(IInteractable interactable)
+    {
+        if (interactable == null)
+            return false;
+
+        Object interactableObject = interactable as Object;
+        if (interactableObject == null)
+            return false;
+
+        return interactable.CanInteract;
     }
 }

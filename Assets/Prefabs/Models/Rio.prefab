@@ -1086,6 +1086,8 @@ SkinnedMeshRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1107,9 +1109,11 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 0
@@ -1518,6 +1522,7 @@ GameObject:
   - component: {fileID: 7359573977970142589}
   - component: {fileID: 3677975029469257560}
   - component: {fileID: 89573360768899744}
+  - component: {fileID: 2000067583799778867}
   m_Layer: 0
   m_Name: Rio
   m_TagString: Untagged
@@ -1578,8 +1583,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e15b1d570496b84ab72d9268adff140, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _animator: {fileID: 6550891393182445697}
-  _speed: 5
+  animator: {fileID: 6550891393182445697}
+  speed: 5
+  interactableHighlightPresenter: {fileID: 2000067583799778867}
 --- !u!114 &7359573977970142589
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1604,8 +1610,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e7cf705712290243ba1568b3a301423, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _maxCells: 32
-  _maxItemsInCell: 100
+  itemsHolder: {fileID: 7301179436802041211}
+  maxCells: 32
+  maxItemsInCell: 100
 --- !u!135 &89573360768899744
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1627,6 +1634,26 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 1.5
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2000067583799778867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5868524165611368148}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d04440c63fbb42788d8f964dc858e804, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractableHighlightPresenter
+  highlightPrefab: {fileID: 1134496667947205443, guid: 9b4a21a889aa0374b98c9d57749aca15, type: 3}
+  positionOffset: {x: 0, y: 0.05, z: 0}
+  groundRotationEuler: {x: 90, y: 0, z: 0}
+  scaleToTargetBounds: 1
+  sizePadding: 0.2
+  fallbackWorldSize: {x: 1, y: 1}
+  minWorldSize: {x: 0.05, y: 0.05}
+  maxWorldSize: {x: 1, y: 1}
 --- !u!1 &6034775927030424452
 GameObject:
   m_ObjectHideFlags: 0

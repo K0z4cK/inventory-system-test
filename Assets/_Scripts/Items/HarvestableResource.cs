@@ -14,9 +14,13 @@ public class HarvestableResource : BaseItem, IInteractable
     [SerializeField, Min(1)] private int minCountPerInteraction = 1;
     [SerializeField, Min(1)] private int maxCountPerInteraction = 1;
 
+    private bool _isDepleted;
+
+    public bool CanInteract => !_isDepleted && itemObject != null && resourceCount > 0;
+
     public bool Interact(Character character)
     {
-        if (character == null || itemObject == null || resourceCount <= 0)
+        if (character == null || !CanInteract)
             return false;
 
         if (requiredTool != null && !character.HasSelectedItem(requiredTool))
@@ -28,7 +32,10 @@ public class HarvestableResource : BaseItem, IInteractable
 
         resourceCount -= countToCollect;
         if (resourceCount <= 0)
+        {
+            _isDepleted = true;
             Destroy(gameObject);
+        }
 
         return true;
     }
