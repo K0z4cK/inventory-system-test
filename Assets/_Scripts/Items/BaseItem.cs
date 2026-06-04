@@ -1,8 +1,9 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public abstract class BaseItem : MonoBehaviour
 {
-    [SerializeField] protected ItemObject _itemObject; 
+    [FormerlySerializedAs("_itemObject")]
+    [SerializeField] protected ItemObject itemObject;
 }
-
 

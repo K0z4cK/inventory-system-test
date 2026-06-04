@@ -14,10 +14,10 @@ public class Character : MonoBehaviour, IControllable
     private InventorySystem _inventorySystem;
     private Transform _transform;
 
-    private IPickable _currentPickableItem;
-    private Transform _currentPickableItemTransform;
+    private IInteractable _currentInteractable;
+    private Transform _currentInteractableTransform;
 
-    private List<Transform> _pickableQueue = new List<Transform>();
+    private List<Transform> _interactableQueue = new List<Transform>();
 
     private void Awake()
     {
@@ -34,15 +34,28 @@ public class Character : MonoBehaviour, IControllable
 
     public void Interact()
     {
-        if (_currentPickableItem == null)
+        if (_currentInteractable == null)
             return;
 
-        if (!_currentPickableItem.PickUp())
+        if (!_currentInteractable.Interact(this))
             return;
 
-        GetPickableFromQueue();
+        GetInteractableFromQueue();
         animator.SetTrigger("Gather");
         Debug.Log("Interact");
+    }
+
+    public bool TryAddItemsToInventory(ItemObject itemObject, int count)
+    {
+        return _inventorySystem != null && _inventorySystem.AddItems(itemObject, count);
+    }
+
+    public bool HasSelectedItem(ItemObject itemObject)
+    {
+        if (_inventorySystem == null || itemObject == null || _inventorySystem.SelectedItem == null)
+            return false;
+
+        return new InventoryItem(_inventorySystem.SelectedItem, 1).Matches(itemObject);
     }
 
     public void Move(Vector2 direction)
@@ -56,62 +69,52 @@ public class Character : MonoBehaviour, IControllable
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Pickable")) 
+        IInteractable interactable = other.GetComponent<IInteractable>();
+        if (interactable == null)
+            return;
+
+        if (_currentInteractable == null)
         {
-            if (_currentPickableItem == null)
-            {
-                _currentPickableItem = other.GetComponent<IPickable>();
-                if (_currentPickableItem == null)
-                    return;
-
-                _currentPickableItemTransform = other.transform;
-                if (_inventorySystem != null)
-                    _currentPickableItem.SubscribeOnItemPickUp(_inventorySystem.AddItems);
-
-                Debug.Log("Can pick up: " + other.name);
-                return;
-            }
-            _pickableQueue.Add(other.transform);
-            Debug.Log("Added to Queue: " + other.name);
+            _currentInteractable = interactable;
+            _currentInteractableTransform = other.transform;
+            Debug.Log("Can interact: " + other.name);
+            return;
         }
+
+        _interactableQueue.Add(other.transform);
+        Debug.Log("Added to Queue: " + other.name);
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.transform == _currentPickableItemTransform)
+        if (other.transform == _currentInteractableTransform)
         {
-            if (_currentPickableItem != null && _inventorySystem != null)
-                _currentPickableItem.UnsubscribeOnItemPickUp(_inventorySystem.AddItems);
-
-            Debug.Log("Get form Queue: " + _currentPickableItemTransform.name);
-            GetPickableFromQueue();           
+            Debug.Log("Get form Queue: " + _currentInteractableTransform.name);
+            GetInteractableFromQueue();
         }
-        else if(_pickableQueue.Contains(other.transform))
+        else if(_interactableQueue.Contains(other.transform))
         {
-            _pickableQueue.Remove(other.transform);
+            _interactableQueue.Remove(other.transform);
         }
     }
 
-    private void GetPickableFromQueue()
+    private void GetInteractableFromQueue()
     {
-        _currentPickableItem = null;
-        _currentPickableItemTransform = null;
+        _currentInteractable = null;
+        _currentInteractableTransform = null;
 
-        if (_pickableQueue.Count == 0)
+        if (_interactableQueue.Count == 0)
             return;
 
-        _currentPickableItemTransform = _pickableQueue[0];
-        _currentPickableItem = _currentPickableItemTransform.GetComponent<IPickable>();
-        if (_currentPickableItem == null)
+        _currentInteractableTransform = _interactableQueue[0];
+        _currentInteractable = _currentInteractableTransform.GetComponent<IInteractable>();
+        if (_currentInteractable == null)
         {
-            _pickableQueue.RemoveAt(0);
-            GetPickableFromQueue();
+            _interactableQueue.RemoveAt(0);
+            GetInteractableFromQueue();
             return;
         }
 
-        if (_inventorySystem != null)
-            _currentPickableItem.SubscribeOnItemPickUp(_inventorySystem.AddItems);
-
-        _pickableQueue.RemoveAt(0);
+        _interactableQueue.RemoveAt(0);
     }
 }

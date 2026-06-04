@@ -17,4 +17,4 @@ MonoBehaviour:
   Name: Stone
   Description: Can use to craft items
   Sprite: {fileID: 21300000, guid: 8ae66f5319a791748acab75de857a943, type: 3}
-  EquippablePrefab: {fileID: 0}
+  EquippablePrefab: {fileID: 1865464218528891008, guid: 00894ae4fc48c1942a22b936232fb230, type: 3}

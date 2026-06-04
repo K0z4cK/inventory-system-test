@@ -113,19 +113,17 @@ public class InventoryArchitectureTests
     }
 
     [Test]
-    public void PickableItem_ReturnsPickupResult_FromInventoryListener()
+    public void WorldItemInteractions_UseSharedInteractableContract()
     {
         PickableItem pickable = new GameObject("Pickable").AddComponent<PickableItem>();
-        pickable.SubscribeOnItemPickUp((_, _, _) => false);
+        HarvestableResource harvestable = new GameObject("Harvestable").AddComponent<HarvestableResource>();
 
-        Assert.That(pickable.PickUp(), Is.False);
-
-        pickable.SubscribeOnItemPickUp((_, _, _) => true);
-
-        Assert.That(pickable.PickUp(), Is.True);
-
+        Assert.That(pickable, Is.AssignableTo<IInteractable>());
+        Assert.That(harvestable, Is.AssignableTo<IInteractable>());
+        
         Object.DestroyImmediate(pickable.gameObject);
-    }
+        Object.DestroyImmediate(harvestable.gameObject);
+    }    
 
     [Test]
     public void ItemDatabaseValidation_ReportsDuplicateItemIds()

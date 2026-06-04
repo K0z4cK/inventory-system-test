@@ -17,4 +17,4 @@ MonoBehaviour:
   Name: Wood
   Description: Can use to craft items
   Sprite: {fileID: 21300000, guid: 105e0179e7af1c844a5e1b07c7a4b8a6, type: 3}
-  EquippablePrefab: {fileID: 0}
+  EquippablePrefab: {fileID: 9214531356168802593, guid: 0c8d13005e342e3479328bc8bc4eb24e, type: 3}

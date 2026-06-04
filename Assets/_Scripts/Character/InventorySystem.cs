@@ -14,6 +14,7 @@ public class InventorySystem : MonoBehaviour, IInventory, IInventorySlotSelector
 
     private InventoryModel _model;
     private IGameplayFeedback _feedback;
+    private int _selectedSlotIndex = -1;
 
     public event System.Action<int, InventoryItem> OnSlotChanged
     {
@@ -61,6 +62,19 @@ public class InventorySystem : MonoBehaviour, IInventory, IInventorySlotSelector
         }
     }
 
+    public ItemObject SelectedItem
+    {
+        get
+        {
+            EnsureModel();
+            if (_selectedSlotIndex < 0 || _selectedSlotIndex >= _model.InventoryItems.Count)
+                return null;
+
+            InventoryItem selectedItem = _model.InventoryItems[_selectedSlotIndex];
+            return selectedItem.IsEmpty ? null : selectedItem.ItemObject;
+        }
+    }
+
     private void Awake()
     {
         ResolveItemsHolder();
@@ -73,12 +87,11 @@ public class InventorySystem : MonoBehaviour, IInventory, IInventorySlotSelector
         _feedback = feedback;
     }
 
-    public bool AddItems(IPickable pickable, ItemObject itemObject, int count = 1)
+    public bool AddItems(ItemObject itemObject, int count = 1)
     {
         if (TryAddItems(itemObject, count))
         {
             _feedback?.ShowPickedUp(itemObject, count);
-            pickable?.DestroyObject();
             return true;
         }
 
@@ -134,6 +147,8 @@ public class InventorySystem : MonoBehaviour, IInventory, IInventorySlotSelector
         IReadOnlyList<InventoryItem> inventoryItems = InventoryItems;
         if (index < 0 || index >= inventoryItems.Count || inventoryItems[index].IsEmpty)
             return;
+
+        _selectedSlotIndex = index;
 
         ResolveItemsHolder();
         if (itemsHolder == null)
