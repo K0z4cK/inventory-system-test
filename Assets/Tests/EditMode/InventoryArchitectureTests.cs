@@ -80,6 +80,9 @@ public class InventoryArchitectureTests
         inventory.TryAddItems(wood, 1);
 
         Assert.That(crafting.CanCraft(crafting.GetAllCrafts()[0]), Is.False);
+        Assert.That(
+            crafting.GetCraftAvailability(crafting.GetAllCrafts()[0]).UnavailableReason,
+            Is.EqualTo(CraftUnavailableReason.MissingIngredients));
     }
 
     [Test]
@@ -90,6 +93,49 @@ public class InventoryArchitectureTests
 
         Assert.That(crafting.CanCraft(default), Is.False);
         Assert.That(crafting.TryCraft(default), Is.False);
+        Assert.That(
+            crafting.GetCraftAvailability(default).UnavailableReason,
+            Is.EqualTo(CraftUnavailableReason.MissingResult));
+    }
+
+    [Test]
+    public void CraftAvailability_ReportsMissingAndInvalidRecipeData()
+    {
+        ItemObject axe = CreateItem("axe");
+        InventoryModel inventory = new InventoryModel(2, 5);
+        CraftingService crafting = new CraftingService(CreateCrafts(), inventory);
+        ItemCraftStruct missingRecipe = CreateCraft(axe, 1);
+        ItemCraftStruct invalidIngredient = new ItemCraftStruct
+        {
+            CraftRecipe = new List<InventoryItem> { default },
+            ItemResult = new InventoryItem(axe, 1)
+        };
+
+        Assert.That(
+            crafting.GetCraftAvailability(missingRecipe).UnavailableReason,
+            Is.EqualTo(CraftUnavailableReason.MissingRecipe));
+        Assert.That(
+            crafting.GetCraftAvailability(invalidIngredient).UnavailableReason,
+            Is.EqualTo(CraftUnavailableReason.InvalidIngredient));
+    }
+
+    [Test]
+    public void CraftAvailability_ReportsUnavailableInventoryAndFullResultSpace()
+    {
+        ItemObject wood = CreateItem("wood");
+        ItemObject axe = CreateItem("axe");
+        ItemCraftStruct craft = CreateCraft(axe, 5, (wood, 1));
+        CraftingService unavailableCrafting = new CraftingService(CreateCrafts(craft), null);
+        InventoryModel fullInventory = new InventoryModel(1, 5);
+        CraftingService fullInventoryCrafting = new CraftingService(CreateCrafts(craft), fullInventory);
+        fullInventory.TryAddItems(wood, 5);
+
+        Assert.That(
+            unavailableCrafting.GetCraftAvailability(craft).UnavailableReason,
+            Is.EqualTo(CraftUnavailableReason.InventoryUnavailable));
+        Assert.That(
+            fullInventoryCrafting.GetCraftAvailability(craft).UnavailableReason,
+            Is.EqualTo(CraftUnavailableReason.InventoryFull));
     }
 
     [Test]
@@ -155,6 +201,26 @@ public class InventoryArchitectureTests
     }
 
     [Test]
+    public void AttackableObject_ReturnsCompleteResult_WhenDefeated()
+    {
+        AttackableObject attackable = new GameObject("Crate").AddComponent<AttackableObject>();
+        SerializedObjectUtility.SetPrivateField(attackable, "maxHealth", 2);
+        SerializedObjectUtility.SetPrivateField(attackable, "_currentHealth", 2);
+        SerializedObjectUtility.SetPrivateField(attackable, "destroyWhenDefeated", false);
+
+        AttackResult result = attackable.ReceiveAttack(null, 2);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(result.TargetName, Is.EqualTo("Crate"));
+        Assert.That(result.DamageDealt, Is.EqualTo(2));
+        Assert.That(result.RemainingHealth, Is.Zero);
+        Assert.That(result.MaxHealth, Is.EqualTo(2));
+        Assert.That(result.Defeated, Is.True);
+
+        Object.DestroyImmediate(attackable.gameObject);
+    }
+
+    [Test]
     public void AttackableObject_RaisesHealthChanged_WhenDamaged()
     {
         AttackableObject attackable = new GameObject("Attackable").AddComponent<AttackableObject>();
@@ -212,6 +278,33 @@ public class InventoryArchitectureTests
         feedbackService.ShowPickedUp(wood, 2);
 
         Assert.That(receivedMessage, Is.EqualTo("Picked up wood x2"));
+    }
+
+    [Test]
+    public void GameplayFeedbackService_RaisesStructuredFailure_WhenToolIsRequired()
+    {
+        ItemObject axe = CreateItem("axe");
+        GameplayFeedbackService feedbackService = new GameplayFeedbackService();
+        GameplayFeedbackMessage receivedMessage = default;
+
+        feedbackService.OnFeedbackRaised += message => receivedMessage = message;
+        feedbackService.ShowRequiredTool(axe);
+
+        Assert.That(receivedMessage.Text, Is.EqualTo("Requires axe"));
+        Assert.That(receivedMessage.Kind, Is.EqualTo(GameplayFeedbackKind.Failure));
+    }
+
+    [Test]
+    public void GameplayFeedbackService_DescribesCombatResult()
+    {
+        GameplayFeedbackService feedbackService = new GameplayFeedbackService();
+        GameplayFeedbackMessage receivedMessage = default;
+
+        feedbackService.OnFeedbackRaised += message => receivedMessage = message;
+        feedbackService.ShowDamageDealt("Crate", 3, 2, 5);
+
+        Assert.That(receivedMessage.Text, Is.EqualTo("Hit Crate for 3 damage (2/5)"));
+        Assert.That(receivedMessage.Kind, Is.EqualTo(GameplayFeedbackKind.Success));
     }
 
     [Test]

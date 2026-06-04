@@ -96,7 +96,6 @@ public class InventorySystem : MonoBehaviour, IInventory, IInventorySlotSelector
         }
 
         _feedback?.ShowInventoryFull(itemObject, count);
-        Debug.Log("Inventory Full");
         return false;
     }
 
@@ -146,9 +145,14 @@ public class InventorySystem : MonoBehaviour, IInventory, IInventorySlotSelector
     {
         IReadOnlyList<InventoryItem> inventoryItems = InventoryItems;
         if (index < 0 || index >= inventoryItems.Count || inventoryItems[index].IsEmpty)
+        {
+            _feedback?.ShowInvalidInventorySelection();
             return;
+        }
 
         _selectedSlotIndex = index;
+        ItemObject selectedItem = inventoryItems[index].ItemObject;
+        _feedback?.ShowItemSelected(selectedItem);
 
         ResolveItemsHolder();
         if (itemsHolder == null)
@@ -157,7 +161,7 @@ public class InventorySystem : MonoBehaviour, IInventory, IInventorySlotSelector
             return;
         }
 
-        itemsHolder?.SetNewItem(inventoryItems[index].ItemObject);
+        itemsHolder?.SetNewItem(selectedItem);
     }
 
     private void ResolveItemsHolder()

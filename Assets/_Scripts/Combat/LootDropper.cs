@@ -10,12 +10,13 @@ public class LootDropper : MonoBehaviour
 
     private bool _hasDropped;
 
-    public void DropLoot()
+    public int DropLoot()
     {
         if (_hasDropped)
-            return;
+            return 0;
 
         _hasDropped = true;
+        int droppedInstanceCount = 0;
         foreach (LootDropEntry entry in loot)
         {
             if (entry == null || !entry.ShouldDrop())
@@ -27,8 +28,11 @@ public class LootDropper : MonoBehaviour
                 Vector2 offset = UnityEngine.Random.insideUnitCircle * scatterRadius;
                 Vector3 spawnPosition = transform.position + new Vector3(offset.x, heightOffset, offset.y);
                 Instantiate(entry.PickablePrefab, spawnPosition, entry.PickablePrefab.transform.rotation);
+                droppedInstanceCount++;
             }
         }
+
+        return droppedInstanceCount;
     }
 }
 

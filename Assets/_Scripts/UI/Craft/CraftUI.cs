@@ -57,6 +57,11 @@ public class CraftUI : BasePanelUI
     {
         base.ShowPanel();
         ShowCrafts();
+        if (_craftingService != null && _craftingService.GetAllCrafts().Count == 0)
+            _feedback?.ShowNoCraftsAvailable();
+        else
+            _feedback?.ShowCraftSelectionRequired();
+
         recipeItems.ForEach(item => { item.gameObject.SetActive(false); });
         craftButton.interactable = false;
     }
@@ -165,14 +170,24 @@ public class CraftUI : BasePanelUI
 
     private string GetCraftUnavailableReason(ItemCraftStruct itemCraft)
     {
-        if (itemCraft.ItemResult.IsEmpty)
-            return "Cannot craft: recipe has no result item";
-
-        List<InventoryItem> missingItems = _craftingService.GetMissingItems(itemCraft.CraftRecipe);
-        if (missingItems.Count > 0)
-            return $"Missing {GetItemName(missingItems[0].ItemObject)} x{missingItems[0].Count}";
-
-        return "Cannot craft: inventory has no space for result";
+        CraftAvailability availability = _craftingService.GetCraftAvailability(itemCraft);
+        switch (availability.UnavailableReason)
+        {
+            case CraftUnavailableReason.InventoryUnavailable:
+                return "Cannot craft: inventory is unavailable";
+            case CraftUnavailableReason.MissingResult:
+                return "Cannot craft: recipe has no result item";
+            case CraftUnavailableReason.MissingRecipe:
+                return "Cannot craft: recipe has no ingredients";
+            case CraftUnavailableReason.InvalidIngredient:
+                return "Cannot craft: recipe contains an invalid ingredient";
+            case CraftUnavailableReason.MissingIngredients:
+                return $"Missing {GetItemName(availability.MissingItem.ItemObject)} x{availability.MissingItem.Count}";
+            case CraftUnavailableReason.InventoryFull:
+                return "Cannot craft: inventory has no space for result";
+            default:
+                return "Cannot craft selected item";
+        }
     }
 
     private string GetItemName(ItemObject itemObject)

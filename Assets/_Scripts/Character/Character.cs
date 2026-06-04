@@ -16,6 +16,7 @@ public class Character : MonoBehaviour, IControllable
 
     private CharacterController _characterController;
     private InventorySystem _inventorySystem;
+    private IGameplayFeedback _feedback;
     private Transform _transform;
 
     private IInteractable _currentInteractable;
@@ -47,12 +48,38 @@ public class Character : MonoBehaviour, IControllable
 
         if (IsAttackableAvailable(_currentAttackable))
         {
-            _currentAttackable.ReceiveAttack(this, GetAttackDamage());
+            AttackResult result = _currentAttackable.ReceiveAttack(this, GetAttackDamage());
+            if (result.Succeeded)
+            {
+                _feedback?.ShowDamageDealt(
+                    result.TargetName,
+                    result.DamageDealt,
+                    result.RemainingHealth,
+                    result.MaxHealth);
+
+                if (result.Defeated)
+                    _feedback?.ShowTargetDefeated(result.TargetName);
+
+                _feedback?.ShowLootDropped(result.DroppedLootCount);
+            }
+            else
+            {
+                _feedback?.ShowNoAttackTarget();
+            }
+
             RefreshAttackTarget();
         }
+        else if (TryGetClosestAvailableAttackableName(out string targetName))
+        {
+            _feedback?.ShowAttackTargetOutOfRange(targetName);
+        }
+        else
+        {
+            _feedback?.ShowNoAttackTarget();
+        }
 
-        animator.SetTrigger("Attack");
-        Debug.Log("Action");
+        if (animator != null)
+            animator.SetTrigger("Attack");
     }
 
     public void Interact()
@@ -60,6 +87,9 @@ public class Character : MonoBehaviour, IControllable
         if (!IsInteractableAvailable(_currentInteractable))
         {
             GetInteractableFromQueue();
+            if (!IsInteractableAvailable(_currentInteractable))
+                _feedback?.ShowNoInteractable();
+
             return;
         }
 
@@ -71,13 +101,33 @@ public class Character : MonoBehaviour, IControllable
         else if (interactableHighlightPresenter != null)
             interactableHighlightPresenter.Show(_currentInteractableTransform);
 
-        animator.SetTrigger("Gather");
-        Debug.Log("Interact");
+        if (animator != null)
+            animator.SetTrigger("Gather");
+    }
+
+    public void Initialize(IGameplayFeedback feedback)
+    {
+        _feedback = feedback;
     }
 
     public bool TryAddItemsToInventory(ItemObject itemObject, int count)
     {
-        return _inventorySystem != null && _inventorySystem.AddItems(itemObject, count);
+        return TryCollectItems(itemObject, count, false, 0);
+    }
+
+    public bool TryHarvestItemsToInventory(ItemObject itemObject, int count, int remainingCount)
+    {
+        return TryCollectItems(itemObject, count, true, remainingCount);
+    }
+
+    public void ShowRequiredToolFeedback(ItemObject requiredTool)
+    {
+        _feedback?.ShowRequiredTool(requiredTool);
+    }
+
+    public void ShowResourceDepletedFeedback(ItemObject itemObject)
+    {
+        _feedback?.ShowResourceDepleted(itemObject);
     }
 
     public bool HasSelectedItem(ItemObject itemObject)
@@ -100,7 +150,8 @@ public class Character : MonoBehaviour, IControllable
 
         _transform.LookAt(_transform.position + scaledMovement, Vector3.up);
         _characterController.Move(scaledMovement);
-        animator.SetFloat("Velocity", _characterController.velocity.magnitude);
+        if (animator != null)
+            animator.SetFloat("Velocity", _characterController.velocity.magnitude);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -122,12 +173,10 @@ public class Character : MonoBehaviour, IControllable
         if (_currentInteractable == null)
         {
             SetCurrentInteractable(other.transform, interactable);
-            Debug.Log("Can interact: " + other.name);
             return;
         }
 
         _interactableQueue.Add(other.transform);
-        Debug.Log("Added to Queue: " + other.name);
     }
 
     private void OnTriggerExit(Collider other)
@@ -141,7 +190,6 @@ public class Character : MonoBehaviour, IControllable
 
         if (other.transform == _currentInteractableTransform)
         {
-            Debug.Log("Get form Queue: " + _currentInteractableTransform.name);
             GetInteractableFromQueue();
         }
         else if(_interactableQueue.Contains(other.transform))
@@ -191,6 +239,53 @@ public class Character : MonoBehaviour, IControllable
             _currentAttackable = attackable;
             _currentAttackableTransform = attackableTransform;
         }
+    }
+
+    private bool TryGetClosestAvailableAttackableName(out string targetName)
+    {
+        targetName = null;
+        float closestDistance = float.MaxValue;
+
+        for (int i = _attackableTargets.Count - 1; i >= 0; i--)
+        {
+            Transform attackableTransform = _attackableTargets[i];
+            if (attackableTransform == null)
+            {
+                _attackableTargets.RemoveAt(i);
+                continue;
+            }
+
+            IAttackable attackable = attackableTransform.GetComponent<IAttackable>();
+            if (!IsAttackableAvailable(attackable))
+                continue;
+
+            float distance = Vector3.Distance(_transform.position, attackableTransform.position);
+            if (distance >= closestDistance)
+                continue;
+
+            closestDistance = distance;
+            targetName = attackable is AttackableObject attackableObject
+                ? attackableObject.DisplayName
+                : attackableTransform.gameObject.name;
+        }
+
+        return !string.IsNullOrWhiteSpace(targetName);
+    }
+
+    private bool TryCollectItems(ItemObject itemObject, int count, bool isHarvest, int remainingCount)
+    {
+        if (_inventorySystem == null || !_inventorySystem.TryAddItems(itemObject, count))
+        {
+            _feedback?.ShowInventoryFull(itemObject, count);
+            return false;
+        }
+
+        if (isHarvest)
+            _feedback?.ShowHarvested(itemObject, count, remainingCount);
+        else
+            _feedback?.ShowPickedUp(itemObject, count);
+
+        return true;
     }
 
     private void GetInteractableFromQueue()

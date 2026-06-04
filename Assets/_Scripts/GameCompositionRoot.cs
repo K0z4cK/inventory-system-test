@@ -27,6 +27,12 @@ public class GameCompositionRoot : MonoBehaviour
 
         GameplayFeedbackService feedbackService = new GameplayFeedbackService();
         playerInventory.Initialize(feedbackService);
+        Character playerCharacter = playerInventory.GetComponent<Character>();
+        if (playerCharacter != null)
+            playerCharacter.Initialize(feedbackService);
+        else
+            Debug.LogError("GameCompositionRoot requires Character next to player InventorySystem.");
+
         _collectionProgressService = new CollectionProgressService(itemDatabase, playerInventory);
         _collectionProgressService.OnItemDiscovered += feedbackService.ShowItemDiscovered;
         _collectionProgressService.OnMilestoneReached += feedbackService.ShowCollectionMilestone;

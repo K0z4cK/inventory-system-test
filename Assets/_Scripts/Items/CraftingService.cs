@@ -1,6 +1,31 @@
 using System.Collections.Generic;
 using System.Linq;
 
+public enum CraftUnavailableReason
+{
+    None,
+    InventoryUnavailable,
+    MissingResult,
+    MissingRecipe,
+    InvalidIngredient,
+    MissingIngredients,
+    InventoryFull
+}
+
+public readonly struct CraftAvailability
+{
+    public bool CanCraft { get; }
+    public CraftUnavailableReason UnavailableReason { get; }
+    public InventoryItem MissingItem { get; }
+
+    public CraftAvailability(bool canCraft, CraftUnavailableReason unavailableReason, InventoryItem missingItem = default)
+    {
+        CanCraft = canCraft;
+        UnavailableReason = unavailableReason;
+        MissingItem = missingItem;
+    }
+}
+
 public class CraftingService
 {
     private readonly ItemCrafts _itemCrafts;
@@ -60,19 +85,41 @@ public class CraftingService
 
     public bool CanCraft(ItemCraftStruct craft)
     {
-        if (_inventory == null || craft.CraftRecipe == null || craft.ItemResult.IsEmpty)
-            return false;
+        return GetCraftAvailability(craft).CanCraft;
+    }
+
+    public CraftAvailability GetCraftAvailability(ItemCraftStruct craft)
+    {
+        if (_inventory == null)
+            return new CraftAvailability(false, CraftUnavailableReason.InventoryUnavailable);
+
+        if (craft.ItemResult.IsEmpty)
+            return new CraftAvailability(false, CraftUnavailableReason.MissingResult);
+
+        if (craft.CraftRecipe == null || craft.CraftRecipe.Count == 0)
+            return new CraftAvailability(false, CraftUnavailableReason.MissingRecipe);
 
         foreach (InventoryItem item in craft.CraftRecipe)
         {
-            if (item.IsEmpty || !_inventory.HasItems(item.ItemObject, item.Count))
-                return false;
+            if (item.IsEmpty)
+                return new CraftAvailability(false, CraftUnavailableReason.InvalidIngredient);
+
+            int missingCount = item.Count - _inventory.CountItems(item.ItemObject);
+            if (missingCount > 0)
+            {
+                InventoryItem missingItem = new InventoryItem(item.ItemObject, missingCount);
+                return new CraftAvailability(false, CraftUnavailableReason.MissingIngredients, missingItem);
+            }
         }
 
-        return _inventory.CanAddItemsAfterRemoving(
-            craft.ItemResult.ItemObject,
-            craft.ItemResult.Count,
-            craft.CraftRecipe);
+        bool hasResultSpace = _inventory.CanAddItemsAfterRemoving(
+                craft.ItemResult.ItemObject,
+                craft.ItemResult.Count,
+                craft.CraftRecipe);
+
+        return hasResultSpace
+            ? new CraftAvailability(true, CraftUnavailableReason.None)
+            : new CraftAvailability(false, CraftUnavailableReason.InventoryFull);
     }
 
     public bool TryCraft(ItemCraftStruct craft)

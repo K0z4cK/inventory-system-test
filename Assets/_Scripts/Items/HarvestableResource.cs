@@ -24,16 +24,21 @@ public class HarvestableResource : BaseItem, IInteractable
             return false;
 
         if (requiredTool != null && !character.HasSelectedItem(requiredTool))
+        {
+            character.ShowRequiredToolFeedback(requiredTool);
             return false;
+        }
 
         int countToCollect = GetCountToCollect();
-        if (!character.TryAddItemsToInventory(itemObject, countToCollect))
+        int remainingCount = Mathf.Max(0, resourceCount - countToCollect);
+        if (!character.TryHarvestItemsToInventory(itemObject, countToCollect, remainingCount))
             return false;
 
         resourceCount -= countToCollect;
         if (resourceCount <= 0)
         {
             _isDepleted = true;
+            character.ShowResourceDepletedFeedback(itemObject);
             Destroy(gameObject);
         }
 
