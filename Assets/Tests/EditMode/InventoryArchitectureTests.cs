@@ -126,6 +126,71 @@ public class InventoryArchitectureTests
     }    
 
     [Test]
+    public void ItemObject_DefaultAttackDamage_IsOne()
+    {
+        ItemObject item = CreateItem("item");
+
+        Assert.That(item.AttackDamage, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void AttackableObject_BecomesUnavailable_WhenHealthIsDepleted()
+    {
+        AttackableObject attackable = new GameObject("Attackable").AddComponent<AttackableObject>();
+        SerializedObjectUtility.SetPrivateField(attackable, "maxHealth", 2);
+        SerializedObjectUtility.SetPrivateField(attackable, "_currentHealth", 2);
+        SerializedObjectUtility.SetPrivateField(attackable, "destroyWhenDefeated", false);
+
+        attackable.ReceiveAttack(null, 1);
+
+        Assert.That(attackable.CurrentHealth, Is.EqualTo(1));
+        Assert.That(attackable.CanBeAttacked, Is.True);
+
+        attackable.ReceiveAttack(null, 1);
+
+        Assert.That(attackable.CurrentHealth, Is.Zero);
+        Assert.That(attackable.CanBeAttacked, Is.False);
+
+        Object.DestroyImmediate(attackable.gameObject);
+    }
+
+    [Test]
+    public void AttackableObject_RaisesHealthChanged_WhenDamaged()
+    {
+        AttackableObject attackable = new GameObject("Attackable").AddComponent<AttackableObject>();
+        SerializedObjectUtility.SetPrivateField(attackable, "maxHealth", 3);
+        SerializedObjectUtility.SetPrivateField(attackable, "_currentHealth", 3);
+        int receivedCurrentHealth = -1;
+        int receivedMaxHealth = -1;
+
+        attackable.OnHealthChanged += (currentHealth, maxHealth) =>
+        {
+            receivedCurrentHealth = currentHealth;
+            receivedMaxHealth = maxHealth;
+        };
+
+        attackable.ReceiveAttack(null, 1);
+
+        Assert.That(receivedCurrentHealth, Is.EqualTo(2));
+        Assert.That(receivedMaxHealth, Is.EqualTo(3));
+
+        Object.DestroyImmediate(attackable.gameObject);
+    }
+
+    [Test]
+    public void EnemyAndBreakableObject_UseSharedAttackableContract()
+    {
+        Enemy enemy = new GameObject("Enemy").AddComponent<Enemy>();
+        BreakableObject breakable = new GameObject("Breakable").AddComponent<BreakableObject>();
+
+        Assert.That(enemy, Is.AssignableTo<IAttackable>());
+        Assert.That(breakable, Is.AssignableTo<IAttackable>());
+
+        Object.DestroyImmediate(enemy.gameObject);
+        Object.DestroyImmediate(breakable.gameObject);
+    }
+
+    [Test]
     public void ItemDatabaseValidation_ReportsDuplicateItemIds()
     {
         ItemObject firstWood = CreateItem("wood");
@@ -231,6 +296,13 @@ public class InventoryArchitectureTests
     private static class SerializedObjectUtility
     {
         public static void SetPrivateList<T>(object target, string fieldName, List<T> value)
+        {
+            target.GetType()
+                .GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                ?.SetValue(target, value);
+        }
+
+        public static void SetPrivateField<T>(object target, string fieldName, T value)
         {
             target.GetType()
                 .GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)

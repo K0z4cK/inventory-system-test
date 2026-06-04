@@ -10,6 +10,9 @@ public class Character : MonoBehaviour, IControllable
     [FormerlySerializedAs("_speed")]
     [SerializeField] private float speed = 10f;
     [SerializeField] private InteractableHighlightPresenter interactableHighlightPresenter;
+    [FormerlySerializedAs("attackDamage")]
+    [SerializeField, Min(1)] private int baseAttackDamage = 1;
+    [SerializeField, Min(0.1f)] private float attackRange = 2.5f;
 
     private CharacterController _characterController;
     private InventorySystem _inventorySystem;
@@ -17,8 +20,11 @@ public class Character : MonoBehaviour, IControllable
 
     private IInteractable _currentInteractable;
     private Transform _currentInteractableTransform;
+    private IAttackable _currentAttackable;
+    private Transform _currentAttackableTransform;
 
     private List<Transform> _interactableQueue = new List<Transform>();
+    private List<Transform> _attackableTargets = new List<Transform>();
 
     private void Awake()
     {
@@ -30,10 +36,23 @@ public class Character : MonoBehaviour, IControllable
         _transform = transform;
     }
 
+    private void Update()
+    {
+        RefreshAttackTarget();
+    }
+
     public void Action()
     {
-        Debug.Log("Action");
+        RefreshAttackTarget();
+
+        if (IsAttackableAvailable(_currentAttackable))
+        {
+            _currentAttackable.ReceiveAttack(this, GetAttackDamage());
+            RefreshAttackTarget();
+        }
+
         animator.SetTrigger("Attack");
+        Debug.Log("Action");
     }
 
     public void Interact()
@@ -69,6 +88,12 @@ public class Character : MonoBehaviour, IControllable
         return new InventoryItem(_inventorySystem.SelectedItem, 1).Matches(itemObject);
     }
 
+    public int GetAttackDamage()
+    {
+        ItemObject selectedItem = _inventorySystem != null ? _inventorySystem.SelectedItem : null;
+        return selectedItem != null ? selectedItem.AttackDamage : Mathf.Max(1, baseAttackDamage);
+    }
+
     public void Move(Vector2 direction)
     {
         Vector3 scaledMovement = new Vector3(direction.x, 0f, direction.y) * speed * Time.fixedDeltaTime;
@@ -80,6 +105,16 @@ public class Character : MonoBehaviour, IControllable
 
     private void OnTriggerEnter(Collider other)
     {
+        IAttackable attackable = other.GetComponentInParent<IAttackable>();
+        if (IsAttackableAvailable(attackable))
+        {
+            Transform attackableTransform = (attackable as Component)?.transform ?? other.transform;
+            if (!_attackableTargets.Contains(attackableTransform))
+                _attackableTargets.Add(attackableTransform);
+
+            RefreshAttackTarget();
+        }
+
         IInteractable interactable = other.GetComponent<IInteractable>();
         if (!IsInteractableAvailable(interactable))
             return;
@@ -97,6 +132,13 @@ public class Character : MonoBehaviour, IControllable
 
     private void OnTriggerExit(Collider other)
     {
+        IAttackable attackable = other.GetComponentInParent<IAttackable>();
+        SetAttackRangeState(attackable, false);
+
+        Transform attackableTransform = (attackable as Component)?.transform ?? other.transform;
+        _attackableTargets.Remove(attackableTransform);
+        RefreshAttackTarget();
+
         if (other.transform == _currentInteractableTransform)
         {
             Debug.Log("Get form Queue: " + _currentInteractableTransform.name);
@@ -105,6 +147,49 @@ public class Character : MonoBehaviour, IControllable
         else if(_interactableQueue.Contains(other.transform))
         {
             _interactableQueue.Remove(other.transform);
+        }
+    }
+
+    private void RefreshAttackTarget()
+    {
+        _currentAttackable = null;
+        _currentAttackableTransform = null;
+
+        int bestPriority = int.MinValue;
+        float bestDistance = float.MaxValue;
+
+        for (int i = _attackableTargets.Count - 1; i >= 0; i--)
+        {
+            Transform attackableTransform = _attackableTargets[i];
+            if (attackableTransform == null)
+            {
+                _attackableTargets.RemoveAt(i);
+                continue;
+            }
+
+            IAttackable attackable = attackableTransform.GetComponent<IAttackable>();
+            if (!IsAttackableAvailable(attackable))
+            {
+                _attackableTargets.RemoveAt(i);
+                continue;
+            }
+
+            float distance = Vector3.Distance(_transform.position, attackableTransform.position);
+            SetAttackRangeState(attackable, distance <= attackRange);
+
+            if (distance > attackRange)
+                continue;
+
+            if (attackable.AttackPriority < bestPriority)
+                continue;
+
+            if (attackable.AttackPriority == bestPriority && distance >= bestDistance)
+                continue;
+
+            bestPriority = attackable.AttackPriority;
+            bestDistance = distance;
+            _currentAttackable = attackable;
+            _currentAttackableTransform = attackableTransform;
         }
     }
 
@@ -162,5 +247,23 @@ public class Character : MonoBehaviour, IControllable
             return false;
 
         return interactable.CanInteract;
+    }
+
+    private bool IsAttackableAvailable(IAttackable attackable)
+    {
+        if (attackable == null)
+            return false;
+
+        Object attackableObject = attackable as Object;
+        if (attackableObject == null)
+            return false;
+
+        return attackable.CanBeAttacked;
+    }
+
+    private void SetAttackRangeState(IAttackable attackable, bool isInRange)
+    {
+        if (attackable is IAttackRangeAware rangeAware)
+            rangeAware.SetInAttackRange(isInRange);
     }
 }

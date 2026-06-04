@@ -12,8 +12,14 @@ public class ItemObject : ScriptableObject
     public Sprite Sprite;
     public GameObject EquippablePrefab;
 
+    [SerializeField, Min(1)] private int attackDamage = 1;
+
+    public int AttackDamage => Mathf.Max(1, attackDamage);
+
     private void OnValidate()
     {
+        attackDamage = Mathf.Max(1, attackDamage);
+
         if (string.IsNullOrWhiteSpace(ItemId))
             Debug.LogWarning($"{name} has an empty ItemId.", this);
 
