@@ -19,4 +19,4 @@ MonoBehaviour:
   Sprite: {fileID: 21300000, guid: a993cdb3b7f336243b20b4a0bd0be230, type: 3}
   PickablePrefab: {fileID: 7785905007613198159, guid: bc1420ce00eb75d46a662b86cf7daaff, type: 3}
   EquippablePrefab: {fileID: 6307377553209605421, guid: 53491efa9c011be4da3b92cfe39f7f05, type: 3}
-  attackDamage: 1
+  attackDamage: 5
