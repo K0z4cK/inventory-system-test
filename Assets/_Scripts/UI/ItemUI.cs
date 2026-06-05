@@ -1,13 +1,10 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class ItemUI : MonoBehaviour
 {
-    [FormerlySerializedAs("_icon")]
     [SerializeField] private Image icon;
-    [FormerlySerializedAs("_countTMP")]
     [SerializeField] private TMP_Text countTMP;
 
     public void SetItem(InventoryItem item)

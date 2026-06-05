@@ -2,19 +2,22 @@ using System.Collections.Generic;
 using Infrastructure;
 using UnityEngine;
 using UnityEngine.Pool;
-using UnityEngine.Serialization;
 
 public class InventoryUI : PlayerWindow
 {
     [Header("Prefabs")]
-    [FormerlySerializedAs("_itemPrefab")]
     [SerializeField] private DraggableItemUI itemPrefab;
 
     [Header("Cells")]
-    [FormerlySerializedAs("_cellsGrid")]
     [SerializeField] private Transform cellsGrid;
-    [FormerlySerializedAs("additionalCellsRoots")]
     [SerializeField] private List<Transform> cellsBeforeGrid = new List<Transform>();
+
+    [Header("Drop Area")]
+    [SerializeField] private RectTransform dropArea;
+    [SerializeField, Min(0f)] private float dropAreaPadding = 32f;
+
+    [Header("Cell Magnet")]
+    [SerializeField, Min(0f)] private float cellSnapDistance = 48f;
 
     private List<InventoryCellUI> _inventoryCells = new List<InventoryCellUI>();
 
@@ -26,6 +29,9 @@ public class InventoryUI : PlayerWindow
     protected override void Awake()
     {
         _itemsPool = new ObjectPool<DraggableItemUI>(Create, Get, Release);
+
+        if (dropArea == null)
+            dropArea = transform as RectTransform;
 
         RegisterAdditionalCells();
         RegisterCells(cellsGrid);
@@ -107,7 +113,7 @@ public class InventoryUI : PlayerWindow
 
         if (secondCellUI == null)
         {
-            if (_dropService == null || !_dropService.TryDropSlot(firstIndex))
+            if (IsInsideDropArea(position) || _dropService == null || !_dropService.TryDropSlot(firstIndex))
                 RefreshAllCells();
 
             return;
@@ -161,6 +167,9 @@ public class InventoryUI : PlayerWindow
 
     private InventoryCellUI GetCellAtScreenPosition(Vector3 screenPosition)
     {
+        InventoryCellUI closestCell = null;
+        float closestDistance = float.MaxValue;
+
         foreach (InventoryCellUI cell in _inventoryCells)
         {
             if (!cell.gameObject.activeInHierarchy)
@@ -172,9 +181,71 @@ public class InventoryUI : PlayerWindow
 
             if (RectTransformUtility.RectangleContainsScreenPoint(rectTransform, screenPosition))
                 return cell;
+
+            if (cellSnapDistance <= 0f)
+                continue;
+
+            float distance = GetDistanceToRect(rectTransform, screenPosition);
+            if (distance >= closestDistance)
+                continue;
+
+            closestDistance = distance;
+            closestCell = cell;
         }
 
-        return null;
+        return closestDistance <= cellSnapDistance ? closestCell : null;
+    }
+
+    private bool IsInsideDropArea(Vector3 screenPosition)
+    {
+        if (dropArea == null)
+            return false;
+
+        Camera eventCamera = GetCanvasCamera(dropArea);
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                dropArea,
+                screenPosition,
+                eventCamera,
+                out Vector2 localPoint))
+        {
+            return false;
+        }
+
+        Rect rect = dropArea.rect;
+        rect.xMin -= dropAreaPadding;
+        rect.xMax += dropAreaPadding;
+        rect.yMin -= dropAreaPadding;
+        rect.yMax += dropAreaPadding;
+
+        return rect.Contains(localPoint);
+    }
+
+    private Camera GetCanvasCamera(RectTransform rectTransform)
+    {
+        Canvas canvas = rectTransform.GetComponentInParent<Canvas>();
+        if (canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+            return null;
+
+        return canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
+    }
+
+    private float GetDistanceToRect(RectTransform rectTransform, Vector3 screenPosition)
+    {
+        Camera eventCamera = GetCanvasCamera(rectTransform);
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                rectTransform,
+                screenPosition,
+                eventCamera,
+                out Vector2 localPoint))
+        {
+            return float.MaxValue;
+        }
+
+        Rect rect = rectTransform.rect;
+        float xDistance = Mathf.Max(rect.xMin - localPoint.x, 0f, localPoint.x - rect.xMax);
+        float yDistance = Mathf.Max(rect.yMin - localPoint.y, 0f, localPoint.y - rect.yMax);
+
+        return new Vector2(xDistance, yDistance).magnitude;
     }
 
     private DraggableItemUI Create()

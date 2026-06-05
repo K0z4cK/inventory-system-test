@@ -2,16 +2,13 @@ using System.Collections.Generic;
 using Infrastructure;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class CollectionUI : PlayerWindow
 {
     [Header("Prefabs")]
-    [FormerlySerializedAs("_itemPrefab")]
     [SerializeField] private CollectionItemUI itemPrefab;
 
     [Header("Layout")]
-    [FormerlySerializedAs("_itemsLayout")]
     [SerializeField] private Transform itemsLayout;
 
     [Header("Progress")]

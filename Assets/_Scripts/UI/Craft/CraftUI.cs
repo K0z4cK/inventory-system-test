@@ -1,23 +1,18 @@
 using System.Collections.Generic;
 using Infrastructure;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class CraftUI : PlayerWindow
 {
     [Header("Prefabs")]
-    [FormerlySerializedAs("_craftItemPrefab")]
     [SerializeField] private CraftItemUI craftItemPrefab;
 
     [Header("Crafts Layout")]
-    [FormerlySerializedAs("_craftsLayout")]
     [SerializeField] private Transform craftsLayout;
 
     [Header("Recipe Objects")]
-    [FormerlySerializedAs("_recipeItems")]
     [SerializeField] private List<ItemUI> recipeItems;
-    [FormerlySerializedAs("_craftButton")]
     [SerializeField] private Button craftButton;
 
     private readonly List<CraftItemUI> _craftItems = new List<CraftItemUI>();

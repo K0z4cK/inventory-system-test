@@ -1,11 +1,9 @@
 using System;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class AttackableObject : MonoBehaviour, IAttackable, IDamageable, IAttackRangeAware
 {
     [SerializeField] private string displayName;
-    [FormerlySerializedAs("health")]
     [SerializeField, Min(1)] private int maxHealth = 1;
     [SerializeField] private int attackPriority;
     [SerializeField] private bool destroyWhenDefeated = true;

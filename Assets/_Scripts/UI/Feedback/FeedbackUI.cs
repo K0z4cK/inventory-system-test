@@ -1,12 +1,10 @@
 using Infrastructure;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class FeedbackUI : MonoBehaviour
 {
-    [FormerlySerializedAs("_messageTMP")]
     [SerializeField] private TMP_Text messageTMP;
     [SerializeField] private Image background;
     [SerializeField] private float showDuration = 2.5f;

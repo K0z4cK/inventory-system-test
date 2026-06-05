@@ -1,17 +1,12 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class CollectionItemUI : MonoBehaviour
 {
-    [FormerlySerializedAs("_icon")]
     [SerializeField] private Image icon;
-    [FormerlySerializedAs("_nameTMP")]
     [SerializeField] private TMP_Text nameTMP;
-    [FormerlySerializedAs("_descriptionTMP")]
     [SerializeField] private TMP_Text descriptionTMP;
-    [FormerlySerializedAs("_attributesTMP")]
     [SerializeField] private TMP_Text attributesTMP;
     [SerializeField] private TMP_Text statusTMP;
     [SerializeField] private Color discoveredColor = Color.white;

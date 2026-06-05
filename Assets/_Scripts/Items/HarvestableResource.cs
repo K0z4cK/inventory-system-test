@@ -1,12 +1,9 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class HarvestableResource : BaseItem, IInteractable
 {
-    [FormerlySerializedAs("_requiredTool")]
     [SerializeField] private ItemObject requiredTool;
 
-    [FormerlySerializedAs("_resourceCount")]
     [SerializeField, Min(1)] private int resourceCount = 1;
 
     [SerializeField] private bool collectAllAtOnce;

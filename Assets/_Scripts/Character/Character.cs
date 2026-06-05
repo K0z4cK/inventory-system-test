@@ -1,17 +1,13 @@
 using System.Collections.Generic;
 using Infrastructure;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 [RequireComponent(typeof(CharacterController))]
 public class Character : MonoBehaviour, IControllable, IInventoryDropService
 {
-    [FormerlySerializedAs("_animator")]
     [SerializeField] private Animator animator;
-    [FormerlySerializedAs("_speed")]
     [SerializeField] private float speed = 10f;
     [SerializeField] private InteractableHighlightPresenter interactableHighlightPresenter;
-    [FormerlySerializedAs("attackDamage")]
     [SerializeField, Min(1)] private int baseAttackDamage = 1;
     [SerializeField, Min(0.1f)] private float attackRange = 2.5f;
     [SerializeField] private Transform dropOrigin;

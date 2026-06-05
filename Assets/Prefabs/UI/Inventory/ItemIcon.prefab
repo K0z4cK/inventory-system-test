@@ -103,6 +103,7 @@ MonoBehaviour:
   m_VerticalAlignment: 1024
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -238,5 +239,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e659dfcdb05426d48a0840d1098cc3d4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _icon: {fileID: 1948777920310476973}
-  _countTMP: {fileID: 7494143768063520398}
+  icon: {fileID: 1948777920310476973}
+  countTMP: {fileID: 7494143768063520398}

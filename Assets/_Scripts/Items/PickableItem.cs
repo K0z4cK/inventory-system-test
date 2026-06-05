@@ -1,9 +1,7 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class PickableItem : BaseItem, IInteractable
 {
-    [FormerlySerializedAs("_pickUpCount")]
     [SerializeField, Min(1)] private int pickUpCount = 1;
 
     private bool _isPickedUp;

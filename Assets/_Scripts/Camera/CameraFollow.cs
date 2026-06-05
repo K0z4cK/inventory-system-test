@@ -1,12 +1,9 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 [RequireComponent(typeof(Camera))]
 public class CameraFollow : MonoBehaviour
 {
-    [FormerlySerializedAs("_target")]
     [SerializeField] private Transform target;   
-    [FormerlySerializedAs("_smoothTime")]
     [SerializeField] private float smoothTime = 0.15f;
 
     private Vector3 _cameraOffest;

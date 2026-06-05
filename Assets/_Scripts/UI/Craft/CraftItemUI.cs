@@ -1,22 +1,16 @@
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Button))]
 public class CraftItemUI : MonoBehaviour
 {
-    [FormerlySerializedAs("_icon")]
     [SerializeField] private Image icon;
-    [FormerlySerializedAs("_nameTMP")]
     [SerializeField] private TMP_Text nameTMP;
-    [FormerlySerializedAs("_descriptionTMP")]
     [SerializeField] private TMP_Text descriptionTMP;
 
-    [FormerlySerializedAs("_selectedColor")]
     [SerializeField] private Color selectedColor;
-    [FormerlySerializedAs("_unselectedColor")]
     [SerializeField] private Color unselectedColor;
 
     private Image _image;

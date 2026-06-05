@@ -9,6 +9,9 @@ public sealed class WindowService : IWindowService, IDisposable
     private Transform _parent;
     private readonly Dictionary<WindowTypeId, BaseWindow> _windowsByType = new Dictionary<WindowTypeId, BaseWindow>();
 
+    public event Action<BaseWindow> OnWindowOpened;
+    public event Action OnWindowClosed;
+
     public BaseWindow CurrentWindow { get; private set; }
 
     public WindowService(WindowStaticData staticData)
@@ -40,6 +43,7 @@ public sealed class WindowService : IWindowService, IDisposable
         CurrentWindow = Object.Instantiate(prefab, _parent, false);
         CurrentWindow.OnCloseRequested += HandleCloseRequested;
         CurrentWindow.Open();
+        OnWindowOpened?.Invoke(CurrentWindow);
         return CurrentWindow;
     }
 
@@ -53,6 +57,7 @@ public sealed class WindowService : IWindowService, IDisposable
         window.OnCloseRequested -= HandleCloseRequested;
         window.CloseWithoutRequest();
         Object.Destroy(window.gameObject);
+        OnWindowClosed?.Invoke();
     }
 
     public void Dispose()
@@ -100,5 +105,6 @@ public sealed class WindowService : IWindowService, IDisposable
 
         window.OnCloseRequested -= HandleCloseRequested;
         Object.Destroy(window.gameObject);
+        OnWindowClosed?.Invoke();
     }
 }

@@ -177,6 +177,8 @@ MonoBehaviour:
   cellsGrid: {fileID: 6474953238954169191}
   cellsBeforeGrid:
   - {fileID: 4066782133307178885}
+  dropArea: {fileID: 6474953238954169191}
+  dropAreaPadding: 32
 --- !u!1 &5682923331601997908
 GameObject:
   m_ObjectHideFlags: 0
