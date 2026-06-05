@@ -1,6 +1,6 @@
 using System;
 
-public class GameplayFeedbackService : IGameplayFeedback
+public class GameplayFeedbackService : IGameplayFeedback, IGameplayFeedbackSource
 {
     public event Action<GameplayFeedbackMessage> OnFeedbackRaised;
     public event Action<string> OnMessageRaised;
@@ -28,6 +28,11 @@ public class GameplayFeedbackService : IGameplayFeedback
     public void ShowInventoryFull(ItemObject itemObject, int count)
     {
         ShowMessage($"Inventory full: cannot collect {GetItemName(itemObject)} x{count}", GameplayFeedbackKind.Failure);
+    }
+
+    public void ShowItemDropped(ItemObject itemObject, int count)
+    {
+        ShowMessage($"Dropped {GetItemName(itemObject)} x{count}", GameplayFeedbackKind.Information);
     }
 
     public void ShowItemSelected(ItemObject itemObject)

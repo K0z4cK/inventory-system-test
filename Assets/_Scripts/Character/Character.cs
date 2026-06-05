@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using Infrastructure;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 [RequireComponent(typeof(CharacterController))]
-public class Character : MonoBehaviour, IControllable
+public class Character : MonoBehaviour, IControllable, IInventoryDropService
 {
     [FormerlySerializedAs("_animator")]
     [SerializeField] private Animator animator;
@@ -13,9 +14,13 @@ public class Character : MonoBehaviour, IControllable
     [FormerlySerializedAs("attackDamage")]
     [SerializeField, Min(1)] private int baseAttackDamage = 1;
     [SerializeField, Min(0.1f)] private float attackRange = 2.5f;
+    [SerializeField] private Transform dropOrigin;
+    [SerializeField, Min(0f)] private float dropForwardOffset = 0.75f;
+    [SerializeField, Min(0f)] private float dropHeightOffset = 0.15f;
 
     private CharacterController _characterController;
-    private InventorySystem _inventorySystem;
+    private PlayerContext _playerContext;
+    private IInventoryService _inventory;
     private IGameplayFeedback _feedback;
     private Transform _transform;
 
@@ -30,7 +35,15 @@ public class Character : MonoBehaviour, IControllable
     private void Awake()
     {
         _characterController = GetComponent<CharacterController>();
-        _inventorySystem = GetComponent<InventorySystem>();
+        _playerContext = GetComponentInParent<PlayerContext>();
+        if (_playerContext != null)
+        {
+            _playerContext.OnInitialized += HandlePlayerContextInitialized;
+            ResolvePlayerServices();
+        }
+        else
+            Debug.LogError("Character requires PlayerContext in its hierarchy.", this);
+
         if (interactableHighlightPresenter == null)
             interactableHighlightPresenter = GetComponentInChildren<InteractableHighlightPresenter>(true);
 
@@ -105,11 +118,6 @@ public class Character : MonoBehaviour, IControllable
             animator.SetTrigger("Gather");
     }
 
-    public void Initialize(IGameplayFeedback feedback)
-    {
-        _feedback = feedback;
-    }
-
     public bool TryAddItemsToInventory(ItemObject itemObject, int count)
     {
         return TryCollectItems(itemObject, count, false, 0);
@@ -118,6 +126,21 @@ public class Character : MonoBehaviour, IControllable
     public bool TryHarvestItemsToInventory(ItemObject itemObject, int count, int remainingCount)
     {
         return TryCollectItems(itemObject, count, true, remainingCount);
+    }
+
+    public bool TryDropSlot(int slotIndex)
+    {
+        if (_inventory == null || !_inventory.TryRemoveSlot(slotIndex, out InventoryItem removedItem))
+            return false;
+
+        if (!TrySpawnPickable(removedItem))
+        {
+            _inventory.TryAddItems(removedItem.ItemObject, removedItem.Count);
+            return false;
+        }
+
+        _feedback?.ShowItemDropped(removedItem.ItemObject, removedItem.Count);
+        return true;
     }
 
     public void ShowRequiredToolFeedback(ItemObject requiredTool)
@@ -132,15 +155,15 @@ public class Character : MonoBehaviour, IControllable
 
     public bool HasSelectedItem(ItemObject itemObject)
     {
-        if (_inventorySystem == null || itemObject == null || _inventorySystem.SelectedItem == null)
+        if (_inventory == null || itemObject == null || _inventory.SelectedItem == null)
             return false;
 
-        return new InventoryItem(_inventorySystem.SelectedItem, 1).Matches(itemObject);
+        return new InventoryItem(_inventory.SelectedItem, 1).Matches(itemObject);
     }
 
     public int GetAttackDamage()
     {
-        ItemObject selectedItem = _inventorySystem != null ? _inventorySystem.SelectedItem : null;
+        ItemObject selectedItem = _inventory != null ? _inventory.SelectedItem : null;
         return selectedItem != null ? selectedItem.AttackDamage : Mathf.Max(1, baseAttackDamage);
     }
 
@@ -274,7 +297,7 @@ public class Character : MonoBehaviour, IControllable
 
     private bool TryCollectItems(ItemObject itemObject, int count, bool isHarvest, int remainingCount)
     {
-        if (_inventorySystem == null || !_inventorySystem.TryAddItems(itemObject, count))
+        if (_inventory == null || !_inventory.TryAddItems(itemObject, count))
         {
             _feedback?.ShowInventoryFull(itemObject, count);
             return false;
@@ -285,6 +308,28 @@ public class Character : MonoBehaviour, IControllable
         else
             _feedback?.ShowPickedUp(itemObject, count);
 
+        return true;
+    }
+
+    private bool TrySpawnPickable(InventoryItem item)
+    {
+        if (item.IsEmpty || item.ItemObject.PickablePrefab == null)
+        {
+            Debug.LogWarning("Cannot drop item because it has no PickablePrefab assigned.", this);
+            return false;
+        }
+
+        Transform origin = dropOrigin != null ? dropOrigin : _transform;
+        Vector3 spawnPosition = origin.position
+            + origin.forward * dropForwardOffset
+            + Vector3.up * dropHeightOffset;
+
+        PickableItem pickableItem = Instantiate(
+            item.ItemObject.PickablePrefab,
+            spawnPosition,
+            item.ItemObject.PickablePrefab.transform.rotation);
+
+        pickableItem.Initialize(item.ItemObject, item.Count);
         return true;
     }
 
@@ -360,5 +405,26 @@ public class Character : MonoBehaviour, IControllable
     {
         if (attackable is IAttackRangeAware rangeAware)
             rangeAware.SetInAttackRange(isInRange);
+    }
+
+    private void ResolvePlayerServices()
+    {
+        if (_playerContext == null || !_playerContext.TryGet(out _inventory))
+            return;
+
+        _feedback = _playerContext.IsLocalPlayer
+            ? ProjectContext.Get<IGameplayFeedback>()
+            : null;
+    }
+
+    private void HandlePlayerContextInitialized(PlayerContext playerContext)
+    {
+        ResolvePlayerServices();
+    }
+
+    private void OnDestroy()
+    {
+        if (_playerContext != null)
+            _playerContext.OnInitialized -= HandlePlayerContextInitialized;
     }
 }

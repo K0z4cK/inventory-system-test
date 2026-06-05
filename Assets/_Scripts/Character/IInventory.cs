@@ -14,6 +14,7 @@ public interface IInventory
     bool TryAddItems(ItemObject itemObject, int count = 1);
     bool HasItems(ItemObject itemObject, int count = 1);
     bool TryRemoveItems(ItemObject itemObject, int count = 1);
+    bool TryRemoveSlot(int slotIndex, out InventoryItem removedItem);
     int CountItems(ItemObject itemObject);
     void SwapItems(int firstIndex, int secondIndex);
 }

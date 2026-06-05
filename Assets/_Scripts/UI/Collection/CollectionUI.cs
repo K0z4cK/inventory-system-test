@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using Infrastructure;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public class CollectionUI : BasePanelUI
+public class CollectionUI : PlayerWindow
 {
     [Header("Prefabs")]
     [FormerlySerializedAs("_itemPrefab")]
@@ -18,31 +19,34 @@ public class CollectionUI : BasePanelUI
 
     private readonly List<CollectionItemUI> _itemViews = new List<CollectionItemUI>();
     private ItemDatabase _itemDatabase;
-    private CollectionProgressService _progressService;
+    private ICollectionProgressService _progressService;
 
-    private void Awake()
+    protected override void Awake()
     {
-        HidePanel();
+        base.Awake();
     }
 
-    public void Initialize(ItemDatabase itemDatabase, CollectionProgressService progressService)
+    protected override void BindPlayer(IPlayerContext playerContext)
     {
         if (_progressService != null)
             _progressService.OnProgressChanged -= RefreshCollectionState;
 
-        _itemDatabase = itemDatabase;
-        _progressService = progressService;
-
-        if (_progressService != null)
-            _progressService.OnProgressChanged += RefreshCollectionState;
-
-        if (_itemDatabase == null)
-            Debug.LogError("CollectionUI requires ItemDatabase.");
+        ProjectContext.TryGet(out _itemDatabase);
+        _progressService = playerContext.Get<ICollectionProgressService>();
+        _progressService.OnProgressChanged += RefreshCollectionState;
     }
 
-    public override void ShowPanel()
+    protected override void UnbindPlayer()
     {
-        base.ShowPanel();
+        if (_progressService != null)
+            _progressService.OnProgressChanged -= RefreshCollectionState;
+
+        _itemDatabase = null;
+        _progressService = null;
+    }
+
+    protected override void OnOpened()
+    {
         ShowItems();
     }
 
@@ -74,7 +78,7 @@ public class CollectionUI : BasePanelUI
 
     private void RefreshCollectionState()
     {
-        if (!Panel.activeSelf)
+        if (!IsOpen)
             return;
 
         ShowItems();
@@ -88,9 +92,11 @@ public class CollectionUI : BasePanelUI
         progressTMP.text = $"{_progressService.CurrentRank}  {_progressService.DiscoveredCount}/{_progressService.TotalCount}";
     }
 
-    private void OnDestroy()
+    protected override void OnDisable()
     {
         if (_progressService != null)
             _progressService.OnProgressChanged -= RefreshCollectionState;
+
+        base.OnDisable();
     }
 }

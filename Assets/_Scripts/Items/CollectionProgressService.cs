@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public class CollectionProgressService : IDisposable
+public class CollectionProgressService : ICollectionProgressService, IDisposable
 {
     private const string RookieRank = "Rookie Collector";
     private const string ExplorerRank = "Field Explorer";

@@ -1,53 +1,71 @@
+using Infrastructure;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
-    [Header("Inventory")]
-    [SerializeField] private InventoryUI inventoryPanel;
+    [Header("Window Host")]
+    [SerializeField] private Transform windowsParent;
+
+    [Header("Legacy Inventory Buttons")]
     [SerializeField] private Button showInventoryBtn;
     [SerializeField] private Button hideInventoryBtn;
-    public InventoryUI InventoryPanel => inventoryPanel;
 
-    [Header("Craft")]
-    [SerializeField] private CraftUI craftPanel;
+    [Header("Legacy Craft Buttons")]
     [SerializeField] private Button showCraftBtn;
     [SerializeField] private Button hideCraftBtn;
-    public CraftUI CraftPanel => craftPanel;
 
-    [Header("Collection")]
-    [SerializeField] private CollectionUI collectionPanel;
+    [Header("Legacy Collection Buttons")]
     [SerializeField] private Button showCollectionBtn;
     [SerializeField] private Button hideCollectionBtn;
-    public CollectionUI CollectionPanel => collectionPanel;
+
+    private IWindowService _windowService;
 
     private void Awake()
     {
-        if (showInventoryBtn != null && inventoryPanel != null)
-            showInventoryBtn.onClick.AddListener(inventoryPanel.ShowPanel);
-        if (hideInventoryBtn != null && inventoryPanel != null)
-            hideInventoryBtn.onClick.AddListener(inventoryPanel.HidePanel);
+        Transform parent = windowsParent != null ? windowsParent : transform;
+        _windowService = ProjectContext.Get<IWindowService>();
+        _windowService.SetParent(parent);
 
-        if (showCraftBtn != null && craftPanel != null)
-            showCraftBtn.onClick.AddListener(craftPanel.ShowPanel);
-        if (hideCraftBtn != null && craftPanel != null)
-            hideCraftBtn.onClick.AddListener(craftPanel.HidePanel);
+        SubscribeLegacyButtons();
+    }
 
-        if (showCollectionBtn != null && collectionPanel != null)
-            showCollectionBtn.onClick.AddListener(() =>
-            {
-                collectionPanel.ShowPanel();
-                showCollectionBtn.gameObject.SetActive(false);
-            });
-        if (hideCollectionBtn != null && collectionPanel != null)
-            hideCollectionBtn.onClick.AddListener(() =>
-            {
-                collectionPanel.HidePanel();
-                showCollectionBtn.gameObject.SetActive(true);
-            });
+    private void SubscribeLegacyButtons()
+    {
+        showInventoryBtn?.onClick.AddListener(ShowInventory);
+        hideInventoryBtn?.onClick.AddListener(HideInventory);
+        showCraftBtn?.onClick.AddListener(ShowCraft);
+        hideCraftBtn?.onClick.AddListener(HideCraft);
+        showCollectionBtn?.onClick.AddListener(ShowCollection);
+        hideCollectionBtn?.onClick.AddListener(HideCollection);
+    }
 
-        if (collectionPanel != null && showCollectionBtn == null)
-            Debug.LogWarning("UIManager has CollectionPanel but no scene reference for Show Collection button.");
+    private void ShowInventory() => _windowService?.Show(WindowTypeId.Inventory);
+    private void HideInventory() => _windowService?.CloseCurrent();
+    private void ShowCraft() => _windowService?.Show(WindowTypeId.Craft);
+    private void HideCraft() => _windowService?.CloseCurrent();
+
+    private void ShowCollection()
+    {
+        _windowService?.Show(WindowTypeId.Collection);
+        if (showCollectionBtn != null)
+            showCollectionBtn.gameObject.SetActive(false);
+    }
+
+    private void HideCollection()
+    {
+        _windowService?.CloseCurrent();
+        if (showCollectionBtn != null)
+            showCollectionBtn.gameObject.SetActive(true);
+    }
+
+    private void OnDestroy()
+    {
+        showInventoryBtn?.onClick.RemoveListener(ShowInventory);
+        hideInventoryBtn?.onClick.RemoveListener(HideInventory);
+        showCraftBtn?.onClick.RemoveListener(ShowCraft);
+        hideCraftBtn?.onClick.RemoveListener(HideCraft);
+        showCollectionBtn?.onClick.RemoveListener(ShowCollection);
+        hideCollectionBtn?.onClick.RemoveListener(HideCollection);
     }
 }

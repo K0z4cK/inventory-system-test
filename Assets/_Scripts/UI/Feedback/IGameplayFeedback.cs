@@ -22,12 +22,18 @@ public readonly struct GameplayFeedbackMessage
     }
 }
 
+public interface IGameplayFeedbackSource
+{
+    event Action<GameplayFeedbackMessage> OnFeedbackRaised;
+}
+
 public interface IGameplayFeedback
 {
     void ShowMessage(string message, GameplayFeedbackKind kind = GameplayFeedbackKind.Information);
     void ShowPickedUp(ItemObject itemObject, int count);
     void ShowHarvested(ItemObject itemObject, int count, int remainingCount);
     void ShowInventoryFull(ItemObject itemObject, int count);
+    void ShowItemDropped(ItemObject itemObject, int count);
     void ShowItemSelected(ItemObject itemObject);
     void ShowInvalidInventorySelection();
     void ShowCraftSucceeded(ItemObject itemObject, int count);

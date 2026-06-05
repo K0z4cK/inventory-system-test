@@ -30,7 +30,7 @@ public class Dragger : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointe
             return;
 
         if (_isDragged)
-            OnReleasedObject?.Invoke(transform.position);
+            OnReleasedObject?.Invoke(eventData.position);
         else
             OnClickObject?.Invoke();
     }

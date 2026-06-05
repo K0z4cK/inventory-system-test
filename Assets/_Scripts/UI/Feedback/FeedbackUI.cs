@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using Infrastructure;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -10,7 +10,6 @@ public class FeedbackUI : MonoBehaviour
     [SerializeField] private TMP_Text messageTMP;
     [SerializeField] private Image background;
     [SerializeField] private float showDuration = 2.5f;
-    [SerializeField, Min(1)] private int maxQueuedMessages = 8;
     [SerializeField] private bool useFeedbackColors = true;
     [SerializeField] private Color informationColor = Color.white;
     [SerializeField] private Color successColor = new Color(0.55f, 1f, 0.55f);
@@ -18,11 +17,9 @@ public class FeedbackUI : MonoBehaviour
     [SerializeField] private Color failureColor = new Color(1f, 0.45f, 0.45f);
     [SerializeField] private Color progressColor = new Color(0.45f, 0.85f, 1f);
 
-    private GameplayFeedbackService _feedbackService;
-    private readonly Queue<GameplayFeedbackMessage> _messageQueue = new Queue<GameplayFeedbackMessage>();
+    private IGameplayFeedbackSource _feedbackSource;
     private float _hideTime;
     private bool _isShowingMessage;
-    private string _currentMessageText;
 
     private void Awake()
     {
@@ -32,64 +29,51 @@ public class FeedbackUI : MonoBehaviour
         HideMessage();
     }
 
+    private void OnEnable()
+    {
+        Bind(ProjectContext.Get<IGameplayFeedbackSource>());
+    }
+
+    private void OnDisable()
+    {
+        Unbind();
+    }
+
     private void Update()
     {
         if (!_isShowingMessage || Time.time < _hideTime)
             return;
 
-        ShowNextMessage();
+        HideMessage();
     }
 
-    public void Initialize(GameplayFeedbackService feedbackService)
+    private void Bind(IGameplayFeedbackSource feedbackSource)
     {
-        if (_feedbackService != null)
-            _feedbackService.OnFeedbackRaised -= EnqueueMessage;
+        Unbind();
+        _feedbackSource = feedbackSource;
 
-        _feedbackService = feedbackService;
-
-        if (_feedbackService != null)
-            _feedbackService.OnFeedbackRaised += EnqueueMessage;
+        if (_feedbackSource != null)
+            _feedbackSource.OnFeedbackRaised += ShowMessage;
         else
-            Debug.LogError("FeedbackUI requires GameplayFeedbackService.");
+            Debug.LogError("FeedbackUI requires IGameplayFeedbackSource.");
     }
 
-    private void EnqueueMessage(GameplayFeedbackMessage message)
+    private void Unbind()
+    {
+        if (_feedbackSource != null)
+            _feedbackSource.OnFeedbackRaised -= ShowMessage;
+
+        _feedbackSource = null;
+    }
+
+    private void ShowMessage(GameplayFeedbackMessage message)
     {
         if (string.IsNullOrWhiteSpace(message.Text))
             return;
 
-        if (_isShowingMessage && _currentMessageText == message.Text)
-        {
-            _hideTime = Time.time + showDuration;
-            return;
-        }
-
-        foreach (GameplayFeedbackMessage queuedMessage in _messageQueue)
-        {
-            if (queuedMessage.Text == message.Text)
-                return;
-        }
-
-        while (_messageQueue.Count >= Mathf.Max(1, maxQueuedMessages))
-            _messageQueue.Dequeue();
-
-        _messageQueue.Enqueue(message);
-        if (!_isShowingMessage)
-            ShowNextMessage();
-    }
-
-    private void ShowNextMessage()
-    {
         if (messageTMP == null)
             return;
 
-        if (_messageQueue.Count == 0)
-        {
-            HideMessage();
-            return;
-        }
-
-        GameplayFeedbackMessage message = _messageQueue.Dequeue();
         messageTMP.text = message.Text;
         if (useFeedbackColors)
             messageTMP.color = GetMessageColor(message.Kind);
@@ -99,7 +83,6 @@ public class FeedbackUI : MonoBehaviour
             background.enabled = true;
 
         _isShowingMessage = true;
-        _currentMessageText = message.Text;
         _hideTime = Time.time + showDuration;
     }
 
@@ -114,7 +97,6 @@ public class FeedbackUI : MonoBehaviour
             background.enabled = false;
 
         _isShowingMessage = false;
-        _currentMessageText = null;
     }
 
     private Color GetMessageColor(GameplayFeedbackKind kind)
@@ -136,7 +118,6 @@ public class FeedbackUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (_feedbackService != null)
-            _feedbackService.OnFeedbackRaised -= EnqueueMessage;
+        Unbind();
     }
 }

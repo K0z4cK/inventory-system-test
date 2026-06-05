@@ -26,7 +26,7 @@ public readonly struct CraftAvailability
     }
 }
 
-public class CraftingService
+public class CraftingService : ICraftingService
 {
     private readonly ItemCrafts _itemCrafts;
     private readonly IInventory _inventory;

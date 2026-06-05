@@ -1,74 +1,95 @@
 using System.Collections.Generic;
+using Infrastructure;
 using UnityEngine;
 using UnityEngine.Pool;
 using UnityEngine.Serialization;
-using UnityEngine.UI;
 
-public class InventoryUI : BasePanelUI
+public class InventoryUI : PlayerWindow
 {
     [Header("Prefabs")]
     [FormerlySerializedAs("_itemPrefab")]
     [SerializeField] private DraggableItemUI itemPrefab;
 
-    [Header("Transforms of cells")]
+    [Header("Cells")]
     [FormerlySerializedAs("_cellsGrid")]
     [SerializeField] private Transform cellsGrid;
-    [FormerlySerializedAs("_cellsHotbar")]
-    [SerializeField] private Transform cellsHotbar;
-
-    [Header("Hotbar")]
-    [FormerlySerializedAs("_hudHotbar")]
-    [SerializeField] private GameObject hudHotbar;
-    [FormerlySerializedAs("_hudHotbarPosition")]
-    [SerializeField] private Transform hudHotbarPosition;
-    [FormerlySerializedAs("_inventoryHotbarPosition")]
-    [SerializeField] private Transform inventoryHotbarPosition;
+    [FormerlySerializedAs("additionalCellsRoots")]
+    [SerializeField] private List<Transform> cellsBeforeGrid = new List<Transform>();
 
     private List<InventoryCellUI> _inventoryCells = new List<InventoryCellUI>();
-    private InventoryCellUI _selectedCell;
 
     private ObjectPool<DraggableItemUI> _itemsPool;
     private IInventory _inventory;
     private IInventorySlotSelector _slotSelector;
-    private bool _isPanelVisible;
+    private IInventoryDropService _dropService;
 
-    private void Awake()
+    protected override void Awake()
     {
         _itemsPool = new ObjectPool<DraggableItemUI>(Create, Get, Release);
 
-        foreach (Transform cell in cellsHotbar)
-        {
-            SetCell(cell);
-        }
-        foreach (Transform cell in cellsGrid)
-        {
-            SetCell(cell);
-        }
+        RegisterAdditionalCells();
+        RegisterCells(cellsGrid);
 
-        HidePanel();
+        base.Awake();
     }
 
-    public void Initialize(IInventory inventorySource, IInventorySlotSelector slotSelector)
+    protected override void BindPlayer(IPlayerContext playerContext)
+    {
+        playerContext.TryGet(out _dropService);
+        BindInventory(playerContext.Get<IInventory>(), playerContext.Get<IInventorySlotSelector>());
+    }
+
+    protected override void UnbindPlayer()
+    {
+        _dropService = null;
+        BindInventory(null, null);
+    }
+
+    private void BindInventory(IInventory inventorySource, IInventorySlotSelector slotSelector)
     {
         if (_inventory != null)
             _inventory.OnSlotChanged -= OnInventorySlotChanged;
+        if (_slotSelector != null)
+            _slotSelector.OnSelectedItemChanged -= HandleSelectedItemChanged;
 
         _inventory = inventorySource;
         _slotSelector = slotSelector;
 
         if (_inventory == null)
-        {
-            Debug.LogError("InventoryUI requires IInventory.");
             return;
-        }
 
         _inventory.OnSlotChanged += OnInventorySlotChanged;
+        if (_slotSelector != null)
+            _slotSelector.OnSelectedItemChanged += HandleSelectedItemChanged;
+
         RefreshAllCells();
+        RefreshSelection();
+    }
+
+    private void RegisterCells(Transform cellsRoot)
+    {
+        if (cellsRoot == null)
+            return;
+
+        foreach (Transform cell in cellsRoot)
+            SetCell(cell);
+    }
+
+    private void RegisterAdditionalCells()
+    {
+        if (cellsBeforeGrid == null)
+            return;
+
+        foreach (Transform cellsRoot in cellsBeforeGrid)
+            RegisterCells(cellsRoot);
     }
 
     private void SetCell(Transform cell)
     {
         var cellUI = cell.GetComponent<InventoryCellUI>();
+        if (cellUI == null)
+            return;
+
         _inventoryCells.Add(cellUI);
         cellUI.OnItemPositionChanged += OnItemPositionChanged;
         cellUI.OnItemClick += OnItemClick;
@@ -77,8 +98,28 @@ public class InventoryUI : BasePanelUI
     private void OnItemPositionChanged(Vector3 position, InventoryCellUI cellUI)
     {
         int firstIndex = _inventoryCells.IndexOf(cellUI);
-        InventoryCellUI secondCellUI = GetClosestCell(position);
+        InventoryCellUI secondCellUI = GetCellAtScreenPosition(position);
+        if (firstIndex < 0)
+        {
+            RefreshAllCells();
+            return;
+        }
+
+        if (secondCellUI == null)
+        {
+            if (_dropService == null || !_dropService.TryDropSlot(firstIndex))
+                RefreshAllCells();
+
+            return;
+        }
+
         int secondIndex = _inventoryCells.IndexOf(secondCellUI);
+        if (secondIndex < 0 || firstIndex == secondIndex)
+        {
+            RefreshAllCells();
+            return;
+        }
+
         _inventory?.SwapItems(firstIndex, secondIndex);
     }
 
@@ -88,28 +129,18 @@ public class InventoryUI : BasePanelUI
         if (index < 0)
             return;
 
-        if(_selectedCell != null)
-            _selectedCell.GetComponent<Image>().enabled = false;
-        _selectedCell = cellUI;
-        _selectedCell.GetComponent<Image>().enabled = true;
-
         _slotSelector?.SelectSlot(index);
     }
 
-    public override void ShowPanel()
+    protected override void OnOpened()
     {
-        _isPanelVisible = true;
-        base.ShowPanel();
-        ApplyHotbarState();
+        SetCellsDraggerActive(true);
         RefreshAllCells();
     }
 
-    public override void HidePanel()
+    protected override void OnClosed()
     {
-        _isPanelVisible = false;
-        base.HidePanel();
-        ApplyHotbarState();
-        RefreshAllCells();
+        SetCellsDraggerActive(false);
     }
 
     public void SetItemToCell(int index, InventoryItem item)
@@ -128,21 +159,32 @@ public class InventoryUI : BasePanelUI
         _inventoryCells[index].ClearCell(_itemsPool);
     }
 
-    private InventoryCellUI GetClosestCell(Vector3 position)
+    private InventoryCellUI GetCellAtScreenPosition(Vector3 screenPosition)
     {
-        InventoryCellUI closestCell = _inventoryCells[0];
-
         foreach (InventoryCellUI cell in _inventoryCells)
         {
-            if(cell.gameObject.activeInHierarchy && Vector3.Distance(cell.transform.position, position) < Vector3.Distance(closestCell.transform.position, position))
-                closestCell = cell;
+            if (!cell.gameObject.activeInHierarchy)
+                continue;
+
+            RectTransform rectTransform = cell.transform as RectTransform;
+            if (rectTransform == null)
+                continue;
+
+            if (RectTransformUtility.RectangleContainsScreenPoint(rectTransform, screenPosition))
+                return cell;
         }
 
-        return closestCell;
+        return null;
     }
 
     private DraggableItemUI Create()
     {
+        if (itemPrefab == null)
+        {
+            Debug.LogError("InventoryUI requires DraggableItemUI prefab.", this);
+            return null;
+        }
+
         DraggableItemUI newItem = Instantiate(itemPrefab);
         newItem.gameObject.SetActive(false);
 
@@ -151,12 +193,14 @@ public class InventoryUI : BasePanelUI
 
     private void Get(DraggableItemUI item)
     {
-        item.gameObject.SetActive(true);
+        if (item != null)
+            item.gameObject.SetActive(true);
     }
 
     private void Release(DraggableItemUI item)
     {
-        item.gameObject.SetActive(false);
+        if (item != null)
+            item.gameObject.SetActive(false);
     }
 
     private void RefreshAllCells()
@@ -165,9 +209,10 @@ public class InventoryUI : BasePanelUI
             return;
 
         IReadOnlyList<InventoryItem> items = _inventory.InventoryItems;
-        for (int i = 0; i < _inventoryCells.Count && i < items.Count; i++)
+        for (int i = 0; i < _inventoryCells.Count; i++)
         {
-            OnInventorySlotChanged(i, items[i]);
+            InventoryItem item = i < items.Count ? items[i] : default;
+            OnInventorySlotChanged(i, item);
         }
     }
 
@@ -177,31 +222,35 @@ public class InventoryUI : BasePanelUI
             ClearCell(index);
         else
             SetItemToCell(index, item);
+    }
 
-        ApplyHotbarState();
+    private void HandleSelectedItemChanged(ItemObject itemObject)
+    {
+        RefreshSelection();
+    }
+
+    private void RefreshSelection()
+    {
+        int selectedIndex = _slotSelector != null ? _slotSelector.SelectedSlotIndex : -1;
+        for (int i = 0; i < _inventoryCells.Count; i++)
+            _inventoryCells[i].SetSelected(i == selectedIndex);
+
     }
 
     private bool IsValidCellIndex(int index) => index >= 0 && index < _inventoryCells.Count;
 
-    private void ApplyHotbarState()
+    private void SetCellsDraggerActive(bool isActive)
     {
-        if (hudHotbar == null || cellsHotbar == null)
-            return;
-
-        hudHotbar.gameObject.SetActive(!_isPanelVisible);
-        cellsHotbar.gameObject.SetActive(true);
-
-        if (_isPanelVisible && inventoryHotbarPosition != null)
-            cellsHotbar.position = inventoryHotbarPosition.position;
-        else if (!_isPanelVisible && hudHotbarPosition != null)
-            cellsHotbar.position = hudHotbarPosition.position;
-
-        _inventoryCells.ForEach(cell => cell.SetDraggerActive(_isPanelVisible));
+        _inventoryCells.ForEach(cell => cell.SetDraggerActive(isActive));
     }
 
-    private void OnDestroy()
+    protected override void OnDisable()
     {
         if (_inventory != null)
             _inventory.OnSlotChanged -= OnInventorySlotChanged;
+        if (_slotSelector != null)
+            _slotSelector.OnSelectedItemChanged -= HandleSelectedItemChanged;
+
+        base.OnDisable();
     }
 }

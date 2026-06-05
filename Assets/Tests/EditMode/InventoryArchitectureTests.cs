@@ -1,9 +1,110 @@
 using System.Collections.Generic;
+using Infrastructure;
 using NUnit.Framework;
 using UnityEngine;
 
 public class InventoryArchitectureTests
 {
+    [Test]
+    public void ServiceContainer_ResolvesContractsAndRejectsDuplicateBindings()
+    {
+        ServiceContainer container = new ServiceContainer();
+        TestService service = new TestService();
+
+        container.Register<ITestService>(service);
+
+        Assert.That(container.Resolve<ITestService>(), Is.SameAs(service));
+        Assert.Throws<System.InvalidOperationException>(() => container.Register<ITestService>(new TestService()));
+
+        container.Dispose();
+    }
+
+    [Test]
+    public void ServiceContainer_DisposesSharedServiceOnlyOnce()
+    {
+        ServiceContainer container = new ServiceContainer();
+        TestService service = new TestService();
+
+        container.Register<ITestService>(service);
+        container.Register<TestService>(service);
+        container.Dispose();
+
+        Assert.That(service.DisposeCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void SeparateInventoryServices_DoNotSharePlayerState()
+    {
+        ItemObject wood = CreateItem("wood");
+        InventoryService firstPlayerInventory = new InventoryService(2, 5);
+        InventoryService secondPlayerInventory = new InventoryService(2, 5);
+
+        firstPlayerInventory.TryAddItems(wood, 3);
+
+        Assert.That(firstPlayerInventory.CountItems(wood), Is.EqualTo(3));
+        Assert.That(secondPlayerInventory.CountItems(wood), Is.Zero);
+
+        firstPlayerInventory.Dispose();
+        secondPlayerInventory.Dispose();
+    }
+
+    [Test]
+    public void InventoryService_RaisesSelectedItemChangedAndTracksSelectedSlot()
+    {
+        ItemObject wood = CreateItem("wood");
+        InventoryService inventory = new InventoryService(2, 5);
+        ItemObject selectedItem = null;
+
+        inventory.OnSelectedItemChanged += item => selectedItem = item;
+        inventory.TryAddItems(wood, 1);
+        inventory.SelectSlot(0);
+
+        Assert.That(inventory.SelectedSlotIndex, Is.Zero);
+        Assert.That(inventory.SelectedItem, Is.SameAs(wood));
+        Assert.That(selectedItem, Is.SameAs(wood));
+
+        inventory.TryRemoveItems(wood, 1);
+
+        Assert.That(inventory.SelectedItem, Is.Null);
+        Assert.That(selectedItem, Is.Null);
+        inventory.Dispose();
+    }
+
+    [Test]
+    public void LocalPlayerProvider_ResolvesServicesFromCurrentPlayerOnly()
+    {
+        LocalPlayerProvider provider = new LocalPlayerProvider();
+        TestPlayerContext firstPlayer = new TestPlayerContext("first");
+        TestPlayerContext secondPlayer = new TestPlayerContext("second");
+        firstPlayer.Register<string>("first inventory");
+        secondPlayer.Register<string>("second inventory");
+
+        provider.SetLocalPlayer(firstPlayer);
+        Assert.That(provider.Get<string>(), Is.EqualTo("first inventory"));
+
+        provider.SetLocalPlayer(secondPlayer);
+        Assert.That(provider.Get<string>(), Is.EqualTo("second inventory"));
+
+        firstPlayer.Dispose();
+        secondPlayer.Dispose();
+    }
+
+    [Test]
+    public void WindowStaticData_ReportsDuplicateWindowTypes()
+    {
+        WindowConfig firstConfig = new WindowConfig();
+        WindowConfig secondConfig = new WindowConfig();
+        SerializedObjectUtility.SetPrivateField(firstConfig, "windowTypeId", WindowTypeId.Inventory);
+        SerializedObjectUtility.SetPrivateField(secondConfig, "windowTypeId", WindowTypeId.Inventory);
+        WindowStaticData staticData = ScriptableObject.CreateInstance<WindowStaticData>();
+        SerializedObjectUtility.SetPrivateList(
+            staticData,
+            "configs",
+            new List<WindowConfig> { firstConfig, secondConfig });
+
+        Assert.That(staticData.GetValidationErrors(), Has.Some.Contains("Duplicate window config for Inventory."));
+    }
+
     [Test]
     public void TryAddItems_DoesNotPartiallyMutateInventory_WhenThereIsNotEnoughSpace()
     {
@@ -400,6 +501,54 @@ public class InventoryArchitectureTests
             target.GetType()
                 .GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
                 ?.SetValue(target, value);
+        }
+    }
+
+    private interface ITestService
+    {
+    }
+
+    private sealed class TestService : ITestService, System.IDisposable
+    {
+        public int DisposeCount { get; private set; }
+
+        public void Dispose()
+        {
+            DisposeCount++;
+        }
+    }
+
+    private sealed class TestPlayerContext : IPlayerContext
+    {
+        private readonly ServiceContainer _services = new ServiceContainer();
+
+        public string PlayerId { get; }
+        public bool IsLocalPlayer => true;
+        public bool IsInitialized => true;
+
+        public TestPlayerContext(string playerId)
+        {
+            PlayerId = playerId;
+        }
+
+        public void Register<TService>(TService service)
+        {
+            _services.Register(service);
+        }
+
+        public TService Get<TService>()
+        {
+            return _services.Resolve<TService>();
+        }
+
+        public bool TryGet<TService>(out TService service)
+        {
+            return _services.TryResolve(out service);
+        }
+
+        public void Dispose()
+        {
+            _services.Dispose();
         }
     }
 }

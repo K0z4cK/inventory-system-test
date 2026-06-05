@@ -10,6 +10,13 @@ public class PickableItem : BaseItem, IInteractable
 
     public bool CanInteract => !_isPickedUp && itemObject != null;
 
+    public void Initialize(ItemObject configuredItemObject, int configuredPickUpCount)
+    {
+        itemObject = configuredItemObject;
+        pickUpCount = Mathf.Max(1, configuredPickUpCount);
+        _isPickedUp = false;
+    }
+
     public bool Interact(Character character)
     {
         if (character == null)

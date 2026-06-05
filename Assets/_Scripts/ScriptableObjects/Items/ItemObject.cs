@@ -10,6 +10,7 @@ public class ItemObject : ScriptableObject
     public string Name;
     public string Description;
     public Sprite Sprite;
+    public PickableItem PickablePrefab;
     public GameObject EquippablePrefab;
 
     [SerializeField, Min(1)] private int attackDamage = 1;

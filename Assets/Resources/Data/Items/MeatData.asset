@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43ab0532e19dc7f4788a40a545df03d7, type: 3}
+  m_Name: MeatData
+  m_EditorClassIdentifier: Assembly-CSharp::ItemObject
+  ItemId: meat
+  Category: 2
+  Name: Meat
+  Description: You can cook this
+  Sprite: {fileID: 21300000, guid: 742b5f715702f6f4ab21402a21ff9559, type: 3}
+  PickablePrefab: {fileID: 3342563464982552011, guid: 85caca0858d0424449ee873ce3ac9c32, type: 3}
+  EquippablePrefab: {fileID: 3919130978279538283, guid: 85caca0858d0424449ee873ce3ac9c32, type: 3}
+  attackDamage: 1

@@ -95,6 +95,20 @@ public class InventoryModel : IInventory
         return true;
     }
 
+    public bool TryRemoveSlot(int slotIndex, out InventoryItem removedItem)
+    {
+        removedItem = default;
+        if (!IsValidIndex(slotIndex) || _inventoryItems[slotIndex].IsEmpty)
+            return false;
+
+        removedItem = _inventoryItems[slotIndex];
+        _inventoryItems[slotIndex].Clear();
+
+        RaiseSlotChanged(slotIndex);
+        RaiseInventoryChanged();
+        return true;
+    }
+
     public int CountItems(ItemObject itemObject)
     {
         if (itemObject == null)

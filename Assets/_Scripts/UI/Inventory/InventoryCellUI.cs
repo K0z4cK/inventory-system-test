@@ -1,11 +1,14 @@
 using System;
 using UnityEngine;
 using UnityEngine.Pool;
+using UnityEngine.UI;
 
 public class InventoryCellUI : MonoBehaviour
 {
     public event Action<Vector3, InventoryCellUI> OnItemPositionChanged;
     public event Action<InventoryCellUI> OnItemClick;
+
+    [SerializeField] private Image selectionImage;
 
     private DraggableItemUI _itemUI;
     public bool HasItem => _itemUI != null;
@@ -54,11 +57,20 @@ public class InventoryCellUI : MonoBehaviour
             _itemUI.SetDraggerActive(isActive);
     }
 
+    public void SetSelected(bool isSelected)
+    {
+        if (selectionImage == null)
+            selectionImage = GetComponent<Image>();
+
+        if (selectionImage != null)
+            selectionImage.enabled = isSelected;
+    }
+
     private void ChangeItemPosition(Vector3 position)
     {
         if (_itemUI == null)
             return;
-        _itemUI.UnsubscribeOnDragger(ChangeItemPosition);
+
         OnItemPositionChanged?.Invoke(position, this);
     }
 

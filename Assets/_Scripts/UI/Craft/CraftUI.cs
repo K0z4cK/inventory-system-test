@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using Infrastructure;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
-public class CraftUI : BasePanelUI
+public class CraftUI : PlayerWindow
 {
     [Header("Prefabs")]
     [FormerlySerializedAs("_craftItemPrefab")]
@@ -22,40 +23,40 @@ public class CraftUI : BasePanelUI
     private readonly List<CraftItemUI> _craftItems = new List<CraftItemUI>();
     private CraftItemUI _selectedItem;
     private ItemCraftStruct? _selectedCraft;
-    private CraftingService _craftingService;
+    private ICraftingService _craftingService;
     private IInventory _inventory;
     private IGameplayFeedback _feedback;
-    private ItemCrafts _itemCrafts;
-
     private bool _isShowAllCrafts = true;
 
-    private void Awake()
+    protected override void Awake()
     {
-        HidePanel();
+        base.Awake();
     }
 
-    public void Initialize(ItemCrafts crafts, IInventory inventory, IGameplayFeedback feedback)
+    protected override void BindPlayer(IPlayerContext playerContext)
     {
         if (_inventory != null)
             _inventory.OnInventoryChanged -= RefreshCraftState;
 
-        _itemCrafts = crafts;
-        _inventory = inventory;
-        _feedback = feedback;
-        _craftingService = new CraftingService(_itemCrafts, _inventory);
+        _inventory = playerContext.Get<IInventory>();
+        _craftingService = playerContext.Get<ICraftingService>();
+        _feedback = ProjectContext.Get<IGameplayFeedback>();
 
-        if (_inventory != null)
-            _inventory.OnInventoryChanged += RefreshCraftState;
-        else
-            Debug.LogError("CraftUI requires IInventory.");
-
-        if (_itemCrafts == null)
-            Debug.LogError("CraftUI requires ItemCrafts.");
+        _inventory.OnInventoryChanged += RefreshCraftState;
     }
 
-    public override void ShowPanel()
+    protected override void UnbindPlayer()
     {
-        base.ShowPanel();
+        if (_inventory != null)
+            _inventory.OnInventoryChanged -= RefreshCraftState;
+
+        _inventory = null;
+        _craftingService = null;
+        _feedback = null;
+    }
+
+    protected override void OnOpened()
+    {
         ShowCrafts();
         if (_craftingService != null && _craftingService.GetAllCrafts().Count == 0)
             _feedback?.ShowNoCraftsAvailable();
@@ -66,9 +67,8 @@ public class CraftUI : BasePanelUI
         craftButton.interactable = false;
     }
 
-    public override void HidePanel()
+    protected override void OnClosed()
     {
-        base.HidePanel();
         if (_selectedItem != null)
             _selectedItem.SetUnselectedColor();
 
@@ -206,9 +206,11 @@ public class CraftUI : BasePanelUI
             ShowCraftRecipe(_selectedCraft.Value, _selectedItem);
     }
 
-    private void OnDestroy()
+    protected override void OnDisable()
     {
         if (_inventory != null)
             _inventory.OnInventoryChanged -= RefreshCraftState;
+
+        base.OnDisable();
     }
 }
